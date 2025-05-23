@@ -3,12 +3,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// 生成 ER 图（可视化数据结构）
-generator erd {
-  provider = "prisma-erd-generator"
-  output   = "./ERD.svg"
-}
-
 // 数据库连接信息（使用 PostgreSQL，由环境变量提供）
 datasource db {
   provider = "postgresql"

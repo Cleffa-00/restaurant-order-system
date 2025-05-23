@@ -67,6 +67,7 @@
 | id         | String   | 主键 UUID      |
 | email      | String   | 登录邮箱，唯一 |
 | password   | String   | 加密后的密码   |
+| role       | String?  | 管理员角色，默认 admin |
 | createdAt  | DateTime | 创建时间       |
 
 ---
@@ -82,14 +83,36 @@
 | imageUrl     | String?   | 图片链接（可选）           |
 | available    | Boolean   | 是否上架                   |
 | category     | String?   | 菜品分类                   |
+| deleted      | Boolean   | 是否软删除                 |
 | optionGroups | 关系字段  | 与多个配料选项组关联       |
 | orderItems   | 关系字段  | 被多个订单项引用           |
+| createdAt    | DateTime  | 创建时间                   |
+| updatedAt    | DateTime  | 更新时间                   |
 
 ---
 
-### 🧂 MenuOptionGroup & MenuOption（配料结构）
+### MenuOptionGroup（选项组）
 
-详见：[README_WITH_ERD_UPDATED.md 中结构描述]
+| 字段名     | 类型    | 说明                   |
+|------------|---------|------------------------|
+| id         | String  | 主键 UUID              |
+| name       | String  | 分组名（如“辣度”）     |
+| required   | Boolean | 是否必选               |
+| deleted    | Boolean | 是否软删除             |
+| menuItemId | String  | 所属菜品 ID            |
+| options    | 关系字段| 包含的多个配料选项     |
+
+---
+
+### MenuOption（选项）
+
+| 字段名     | 类型    | 说明                   |
+|------------|---------|------------------------|
+| id         | String  | 主键 UUID              |
+| name       | String  | 配料名称               |
+| priceDelta | Decimal | 加价金额               |
+| groupId    | String  | 所属选项组 ID          |
+| deleted    | Boolean | 是否软删除             |
 
 ---
 
@@ -103,6 +126,8 @@
 | status        | OrderStatus  | 订单状态（如 PENDING）    |
 | paymentStatus | PaymentStatus| 支付状态（如 UNPAID）     |
 | totalPrice    | Decimal      | 总金额                    |
+| orderSource   | String?      | 下单来源（如扫码）        |
+| customerNote  | String?      | 顾客整单备注              |
 | createdAt     | DateTime     | 下单时间                  |
 | items         | 关系字段     | 包含的订单项              |
 
@@ -113,28 +138,28 @@
 | 字段名           | 类型     | 说明                     |
 |------------------|----------|--------------------------|
 | menuItemId       | String   | 所选菜品的 ID            |
+| menuItemName     | String   | 菜名快照                 |
+| menuItemImage    | String?  | 图片链接快照             |
+| menuItemCategory | String?  | 菜品分类快照             |
 | quantity         | Int      | 数量                     |
 | note             | String?  | 备注（如“少辣”）         |
 | unitPrice        | Decimal  | 下单时单价               |
 | options          | 关系字段 | 配料选项数组             |
-| menuItemName     | String   | 菜名快照                 |
-| menuItemImage    | String?  | 图片链接快照             |
-| menuItemCategory | String?  | 菜品分类快照             |
 
 ---
 
 ### OrderItemOption（订单配料）
 
-| 字段名     | 类型    | 说明                 |
-|------------|---------|----------------------|
-| optionName | String  | 配料名称（如“加蛋”）|
-| priceDelta | Decimal | 加价金额             |
-
+| 字段名     | 类型    | 说明                   |
+|------------|---------|------------------------|
+| groupName  | String? | 所属选项组名称（快照）|
+| optionName | String  | 配料名称（如“加蛋”） |
+| priceDelta | Decimal | 加价金额               |
 ---
 
 ## 🖼 实体关系图（ER 图）
 
-![ER 图](./docs/ERD.png)
+![ER 图 老版本](./docs/ERD.png)
 
 此图展示各模型之间的关系结构，一对多、多对一字段、外键连接等。
 

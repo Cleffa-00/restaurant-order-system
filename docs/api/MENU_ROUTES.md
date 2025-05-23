@@ -1,25 +1,27 @@
 # 🍽 菜单接口文档（MENU_ROUTES.md）
 
-用于管理菜单项（MenuItem），包括获取、添加、更新、删除操作。
+菜单相关接口，提供浏览菜单、添加、编辑、删除菜品的能力。
 
 ---
 
 ## `GET /api/menu`
 
-获取所有菜单项及其选项组和选项。
+### ✅ 功能说明：
+获取所有上架的菜单项（available: true）及其配料结构。
+
+### ✅ 请求示例：
+无需参数
 
 ### ✅ 响应示例：
-
 ```json
 [
   {
     "id": "menu_1",
     "name": "番茄炒蛋",
-    "description": "经典家常菜，营养丰富",
-    "price": 10.99,
+    "description": "经典家常菜",
+    "price": 12.50,
     "imageUrl": "https://example.com/tomato_egg.jpg",
-    "available": true,
-    "category": "热菜",
+    "category": "主菜",
     "optionGroups": [
       {
         "id": "group_1",
@@ -29,58 +31,36 @@
           { "id": "opt_1", "name": "不辣", "priceDelta": 0 },
           { "id": "opt_2", "name": "微辣", "priceDelta": 0.5 }
         ]
-      },
-      {
-        "id": "group_2",
-        "name": "附加",
-        "required": false,
-        "options": [
-          { "id": "opt_3", "name": "加蛋", "priceDelta": 1.0 },
-          { "id": "opt_4", "name": "加芝士", "priceDelta": 1.5 }
-        ]
       }
     ]
-  },
-  {
-    "id": "menu_2",
-    "name": "酸辣汤",
-    "description": "开胃爽口",
-    "price": 8.50,
-    "imageUrl": "https://example.com/sour_spicy_soup.jpg",
-    "available": true,
-    "category": "汤类",
-    "optionGroups": []
   }
 ]
 ```
 
 ---
 
-## `POST /api/menu` 🔐（需要管理员身份）
+## `POST /api/menu` 🔐（管理员专用）
 
-添加一个新菜单项（含选项组）
+### ✅ 功能说明：
+新增一个菜单项，可包含多个选项组（MenuOptionGroup）。
 
-> 本接口需要管理员身份（JWT 鉴权）。请在请求 Header 中附加：
->
+> ⚠️ 本接口需要管理员 JWT 鉴权，需在请求头添加：
 > `Authorization: Bearer YOUR_JWT_TOKEN`
 
-### ✅ Headers 示例
-
+### ✅ 请求头：
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6...
+Authorization: Bearer your_token_here
 Content-Type: application/json
 ```
 
-### ✅ 请求体示例：
-
+### ✅ 请求体：
 ```json
 {
   "name": "香煎鸡排",
-  "description": "外酥里嫩，推荐加蛋",
-  "price": 18.50,
-  "imageUrl": "https://example.com/chicken_steak.jpg",
-  "available": true,
-  "category": "主食",
+  "description": "香脆可口",
+  "price": 18.00,
+  "imageUrl": "https://example.com/chicken.jpg",
+  "category": "主菜",
   "optionGroups": [
     {
       "name": "辣度",
@@ -89,69 +69,47 @@ Content-Type: application/json
         { "name": "不辣", "priceDelta": 0 },
         { "name": "微辣", "priceDelta": 0.5 }
       ]
-    },
-    {
-      "name": "附加",
-      "required": false,
-      "options": [
-        { "name": "加蛋", "priceDelta": 1.0 },
-        { "name": "双倍肉", "priceDelta": 3.0 }
-      ]
     }
   ]
 }
 ```
 
 ### ✅ 响应：
-
 ```json
 {
-  "id": "menu_3",
+  "id": "menu_2",
   "message": "Menu item created successfully"
 }
 ```
 
 ---
 
-## `PATCH /api/menu/:id` 🔐（需要管理员身份）
+## `PATCH /api/menu/:id` 🔐（管理员专用）
 
-更新菜单项内容。
+### ✅ 功能说明：
+更新已有菜单项的名称、价格、描述、分类等信息。
 
-> 本接口需要管理员身份（JWT 鉴权）。请在请求 Header 中附加：
->
-> `Authorization: Bearer YOUR_JWT_TOKEN`
-
-### ✅ 请求体示例：
-
+### ✅ 请求体：
 ```json
 {
-  "name": "香煎鸡排（加大份）",
-  "price": 22.50,
-  "available": false,
-  "description": "加大版更满足",
-  "imageUrl": "https://example.com/chicken_steak_large.jpg",
-  "category": "主食"
+  "name": "香煎鸡排（升级版）",
+  "price": 21.50,
+  "available": true,
+  "category": "主菜"
 }
-```
-
-### ✅ 响应：
-
-```json
-{ "message": "Menu item updated successfully" }
 ```
 
 ---
 
-## `DELETE /api/menu/:id` 🔐（需要管理员身份）
+## `DELETE /api/menu/:id` 🔐（管理员专用）
 
-删除指定菜单项（不可恢复）
+### ✅ 功能说明：
+将菜单项标记为软删除（deleted: true）
 
-> 本接口需要管理员身份（JWT 鉴权）。请在请求 Header 中附加：
->
-> `Authorization: Bearer YOUR_JWT_TOKEN`
+---
 
-### ✅ 响应：
+## 注意事项
 
-```json
-{ "message": "Menu item deleted" }
-```
+- 所有写操作（POST, PATCH, DELETE）均需管理员权限
+- 返回结果统一结构应包含 `{ message: string }`，成功创建应包含 `id`
+- 删除应为软删除：标记 `deleted = true` 而不是从数据库移除

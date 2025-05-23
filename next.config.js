@@ -6,6 +6,10 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000'],
     },
   },
+  i18n: {
+    locales: ['zh', 'en'],
+    defaultLocale: 'zh',
+  },
 }
 
 module.exports = nextConfig 

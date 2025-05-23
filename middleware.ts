@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import createMiddleware from 'next-intl/middleware'
 
 export function middleware(request: NextRequest) {
   // Get the pathname of the request
@@ -29,13 +30,14 @@ export function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
+export default createMiddleware({
+  locales: ['zh', 'en'],
+  defaultLocale: 'zh'
+})
+
 export const config = {
   matcher: [
-    // Match all request paths except for the ones starting with:
-    // - _next/static (static files)
-    // - _next/image (image optimization files)
-    // - favicon.ico (favicon file)
-    // - public folder
+    '/((?!_next|api|favicon.ico).*)',
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
-  ],
+  ]
 } 

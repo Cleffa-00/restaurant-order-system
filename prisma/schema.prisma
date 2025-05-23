@@ -16,6 +16,7 @@ model AdminUser {
   id        String   @id @default(uuid()) // 主键 UUID
   email     String   @unique              // 邮箱唯一，用于登录
   password  String                        // 存储加密后的密码
+  role      String?   @default("admin")       // 管理员角色（默认：admin）
   createdAt DateTime @default(now())     // 创建时间
 }
 
@@ -39,6 +40,7 @@ model MenuItem {
 
   createdAt DateTime @default(now())        // 创建时间
   updatedAt DateTime @updatedAt             // 自动更新时间
+  deleted   Boolean   @default(false)       // 是否软删除
 }
 
 //////////////////////////////////////////////////////////
@@ -55,6 +57,7 @@ model MenuOptionGroup {
 
   // 一个分组下多个选项
   options    MenuOption[]
+  deleted    Boolean @default(false)       // 是否软删除
 }
 
 //////////////////////////////////////////////////////////
@@ -68,6 +71,7 @@ model MenuOption {
   // 属于哪个选项组
   group      MenuOptionGroup @relation(fields: [groupId], references: [id])
   groupId    String
+  deleted     Boolean @default(false)       // 是否软删除
 }
 
 //////////////////////////////////////////////////////////
@@ -80,6 +84,8 @@ model Order {
   status        OrderStatus   @default(PENDING)         // 订单状态（待制作/完成等）
   totalPrice    Decimal                                 // 总价
   paymentStatus PaymentStatus @default(UNPAID)          // 是否已支付
+  orderSource   String?                                 // 下单来源标记（如扫码）
+  customerNote  String?                                 // 顾客对整单备注
   items         OrderItem[]                             // 订单中包含哪些菜品
   createdAt     DateTime       @default(now())          // 下单时间
 }
@@ -113,6 +119,7 @@ model OrderItemOption {
   orderItem    OrderItem @relation(fields: [orderItemId], references: [id])
   orderItemId  String                         // 所属订单菜品
 
+  groupName   String?                        // 所属选项组名称（如“附加”）
   optionName   String                         // 配料名称（如“加蛋”）
   priceDelta   Decimal                        // 加价（当时）
 }

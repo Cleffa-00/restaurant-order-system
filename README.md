@@ -61,29 +61,74 @@
 ## 🗃 数据库结构（基于 Prisma + Neon）
 
 ### AdminUser（管理员）
-- id（主键）
-- email（登录邮箱）
-- password（密码哈希）
-- createdAt（创建时间）
+
+| 字段名     | 类型     | 说明           |
+|------------|----------|----------------|
+| id         | String   | 主键 UUID      |
+| email      | String   | 登录邮箱，唯一 |
+| password   | String   | 加密后的密码   |
+| createdAt  | DateTime | 创建时间       |
+
+---
 
 ### MenuItem（菜单项）
-- id、name、price、description、imageUrl、available、category
-- optionGroups（关联的选项组）
-- orderItems（被哪些订单引用）
 
-### 🧂 MenuOptionGroup & MenuOption（配料选项结构）
+| 字段名       | 类型      | 说明                       |
+|--------------|-----------|----------------------------|
+| id           | String    | 主键 UUID                  |
+| name         | String    | 菜名                       |
+| price        | Decimal   | 基础价格                   |
+| description  | String?   | 菜品描述（可选）           |
+| imageUrl     | String?   | 图片链接（可选）           |
+| available    | Boolean   | 是否上架                   |
+| category     | String?   | 菜品分类                   |
+| optionGroups | 关系字段  | 与多个配料选项组关联       |
+| orderItems   | 关系字段  | 被多个订单项引用           |
+
+---
+
+### 🧂 MenuOptionGroup & MenuOption（配料结构）
+
 详见：[README_WITH_ERD_UPDATED.md 中结构描述]
 
+---
+
 ### Order（订单）
-- id、phone、name、status（PENDING 等）、paymentStatus、totalPrice、createdAt
-- items（订单项数组）
+
+| 字段名        | 类型         | 说明                      |
+|---------------|--------------|---------------------------|
+| id            | String       | 主键 UUID                 |
+| phone         | String       | 顾客手机号                |
+| name          | String       | 顾客姓名                  |
+| status        | OrderStatus  | 订单状态（如 PENDING）    |
+| paymentStatus | PaymentStatus| 支付状态（如 UNPAID）     |
+| totalPrice    | Decimal      | 总金额                    |
+| createdAt     | DateTime     | 下单时间                  |
+| items         | 关系字段     | 包含的订单项              |
+
+---
 
 ### OrderItem（订单项）
-- menuItemId、quantity、note、unitPrice
-- options（顾客所选配料）
+
+| 字段名           | 类型     | 说明                     |
+|------------------|----------|--------------------------|
+| menuItemId       | String   | 所选菜品的 ID            |
+| quantity         | Int      | 数量                     |
+| note             | String?  | 备注（如“少辣”）         |
+| unitPrice        | Decimal  | 下单时单价               |
+| options          | 关系字段 | 配料选项数组             |
+| menuItemName     | String   | 菜名快照                 |
+| menuItemImage    | String?  | 图片链接快照             |
+| menuItemCategory | String?  | 菜品分类快照             |
+
+---
 
 ### OrderItemOption（订单配料）
-- optionName、priceDelta
+
+| 字段名     | 类型    | 说明                 |
+|------------|---------|----------------------|
+| optionName | String  | 配料名称（如“加蛋”）|
+| priceDelta | Decimal | 加价金额             |
 
 ---
 

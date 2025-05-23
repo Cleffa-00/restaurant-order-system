@@ -95,6 +95,10 @@ model OrderItem {
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
   menuItemId String                         // 关联的菜品 ID
 
+  menuItemName     String                   // 菜品名称快照
+  menuItemImage    String?                  // 图片链接快照
+  menuItemCategory String?                  // 分类快照
+
   quantity   Int                            // 点的数量
   note       String?                        // 顾客备注（如不要葱）
   options    OrderItemOption[]              // 顾客为此菜点的选项（加蛋、微辣）

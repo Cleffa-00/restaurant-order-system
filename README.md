@@ -60,101 +60,168 @@
 
 ## 🗃 数据库结构（基于 Prisma + Neon）
 
-### AdminUser（管理员）
-
-| 字段名     | 类型     | 说明           |
-|------------|----------|----------------|
-| id         | String   | 主键 UUID      |
-| email      | String   | 登录邮箱，唯一 |
-| password   | String   | 加密后的密码   |
-| role       | String?  | 管理员角色，默认 admin |
-| createdAt  | DateTime | 创建时间       |
+本数据库使用 Prisma 构建，支持管理员分级、模板化菜单选项、顾客关联订单等功能模块。
 
 ---
 
-### MenuItem（菜单项）
+### 👤 AdminUser（管理员账户）
 
-| 字段名       | 类型      | 说明                       |
-|--------------|-----------|----------------------------|
-| id           | String    | 主键 UUID                  |
-| name         | String    | 菜名                       |
-| price        | Decimal   | 基础价格                   |
-| description  | String?   | 菜品描述（可选）           |
-| imageUrl     | String?   | 图片链接（可选）           |
-| available    | Boolean   | 是否上架                   |
-| category     | String?   | 菜品分类                   |
-| deleted      | Boolean   | 是否软删除                 |
-| optionGroups | 关系字段  | 与多个配料选项组关联       |
-| orderItems   | 关系字段  | 被多个订单项引用           |
-| createdAt    | DateTime  | 创建时间                   |
-| updatedAt    | DateTime  | 更新时间                   |
+| 字段名   | 类型       | 说明              |
+|----------|------------|-------------------|
+| id       | String     | 主键 UUID         |
+| email    | String     | 登录邮箱，唯一    |
+| password | String     | 加密后密码        |
+| role     | AdminRole  | 管理员角色        |
+| createdAt| DateTime   | 创建时间          |
 
 ---
 
-### MenuOptionGroup（选项组）
+### 🧾 Customer（顾客用户）
 
-| 字段名     | 类型    | 说明                   |
-|------------|---------|------------------------|
-| id         | String  | 主键 UUID              |
-| name       | String  | 分组名（如“辣度”）     |
-| required   | Boolean | 是否必选               |
-| deleted    | Boolean | 是否软删除             |
-| menuItemId | String  | 所属菜品 ID            |
-| options    | 关系字段| 包含的多个配料选项     |
-
----
-
-### MenuOption（选项）
-
-| 字段名     | 类型    | 说明                   |
-|------------|---------|------------------------|
-| id         | String  | 主键 UUID              |
-| name       | String  | 配料名称               |
-| priceDelta | Decimal | 加价金额               |
-| groupId    | String  | 所属选项组 ID          |
-| deleted    | Boolean | 是否软删除             |
+| 字段名   | 类型     | 说明               |
+|----------|----------|--------------------|
+| id       | String   | 主键 UUID          |
+| phone    | String   | 手机号，唯一        |
+| name     | String?  | 昵称（可选）        |
+| email    | String?  | 邮箱（可选）        |
+| createdAt| DateTime | 注册时间           |
+| orders   | Order[]  | 该顾客的所有订单    |
 
 ---
 
-### Order（订单）
+### 🍽 MenuItem（菜单项）
+
+| 字段名       | 类型              | 说明                      |
+|--------------|-------------------|---------------------------|
+| id           | String            | 主键 UUID                 |
+| name         | String            | 菜名                      |
+| description  | String?           | 菜品描述（可选）          |
+| price        | Decimal           | 基础价格                  |
+| imageUrl     | String?           | 菜品图片链接（可选）      |
+| available    | Boolean           | 是否当前可下单            |
+| category     | String?           | 菜品分类                  |
+| deleted      | Boolean           | 是否软删除                |
+| optionGroups | MenuOptionGroup[] | 该菜单项的选项组副本集合  |
+| orderItems   | OrderItem[]       | 被哪些订单项引用          |
+| createdAt    | DateTime          | 创建时间                  |
+| updatedAt    | DateTime          | 更新时间                  |
+
+---
+
+### 🧩 OptionGroupTemplate / OptionTemplate（全局配料模板）
+
+#### OptionGroupTemplate
+
+| 字段名   | 类型         | 说明            |
+|----------|--------------|-----------------|
+| id       | String       | 主键 UUID       |
+| name     | String       | 分组名（如“辣度”） |
+| required | Boolean      | 是否为必选       |
+| options  | OptionTemplate[] | 模板选项列表 |
+
+#### OptionTemplate
+
+| 字段名    | 类型     | 说明           |
+|-----------|----------|----------------|
+| id        | String   | 主键 UUID      |
+| name      | String   | 选项名         |
+| priceDelta| Decimal  | 加价金额       |
+| groupId   | String   | 所属模板组 ID  |
+
+---
+
+### 🧂 MenuOptionGroup / MenuOption（菜品专用选项）
+
+#### MenuOptionGroup
+
+| 字段名     | 类型               | 说明                     |
+|------------|--------------------|--------------------------|
+| id         | String             | 主键 UUID                |
+| name       | String             | 分组名称                 |
+| required   | Boolean            | 是否为必选项组           |
+| menuItemId | String             | 所属菜品 ID              |
+| templateId | String?            | 来源模板 ID（可选）      |
+| deleted    | Boolean            | 是否软删除               |
+| options    | MenuOption[]       | 实际展示的选项列表       |
+
+#### MenuOption
+
+| 字段名    | 类型     | 说明           |
+|-----------|----------|----------------|
+| id        | String   | 主键 UUID      |
+| name      | String   | 配料名称       |
+| priceDelta| Decimal  | 加价金额       |
+| groupId   | String   | 所属选项组 ID  |
+| deleted   | Boolean  | 是否软删除     |
+
+---
+
+### 📦 Order（订单）
 
 | 字段名        | 类型         | 说明                      |
-|---------------|--------------|---------------------------|
-| id            | String       | 主键 UUID                 |
-| phone         | String       | 顾客手机号                |
-| name          | String       | 顾客姓名                  |
-| status        | OrderStatus  | 订单状态（如 PENDING）    |
-| paymentStatus | PaymentStatus| 支付状态（如 UNPAID）     |
-| totalPrice    | Decimal      | 总金额                    |
-| orderSource   | String?      | 下单来源（如扫码）        |
-| customerNote  | String?      | 顾客整单备注              |
-| createdAt     | DateTime     | 下单时间                  |
-| items         | 关系字段     | 包含的订单项              |
+|----------------|--------------|---------------------------|
+| id             | String       | 主键 UUID                 |
+| phone          | String       | 顾客手机号                |
+| name           | String       | 顾客姓名                  |
+| status         | OrderStatus  | 订单状态（如 PENDING）     |
+| paymentStatus  | PaymentStatus| 支付状态（如 UNPAID）      |
+| orderSource    | String?      | 下单来源标记（如扫码）     |
+| customerNote   | String?      | 整单备注（如“加快制作”）   |
+| customerId     | String?      | 所属顾客 ID（可选）        |
+| customer       | Customer?    | 关联顾客（可选）           |
+| items          | OrderItem[]  | 包含的订单项数组           |
+| createdAt      | DateTime     | 下单时间                   |
 
 ---
 
-### OrderItem（订单项）
+### 🍱 OrderItem（订单中某道菜）
 
-| 字段名           | 类型     | 说明                     |
-|------------------|----------|--------------------------|
-| menuItemId       | String   | 所选菜品的 ID            |
-| menuItemName     | String   | 菜名快照                 |
-| menuItemImage    | String?  | 图片链接快照             |
-| menuItemCategory | String?  | 菜品分类快照             |
-| quantity         | Int      | 数量                     |
-| note             | String?  | 备注（如“少辣”）         |
-| unitPrice        | Decimal  | 下单时单价               |
-| options          | 关系字段 | 配料选项数组             |
+| 字段名           | 类型     | 说明                      |
+|------------------|----------|---------------------------|
+| id               | String   | 主键 UUID                 |
+| menuItemId       | String   | 所选菜品 ID               |
+| menuItemName     | String   | 菜名快照                  |
+| menuItemImage    | String?  | 图片链接快照              |
+| menuItemCategory | String?  | 分类快照                  |
+| quantity         | Int      | 数量                      |
+| note             | String?  | 顾客备注（如“少辣”）      |
+| unitPrice        | Decimal  | 单价快照                  |
+| options          | OrderItemOption[] | 配料快照项数组  |
 
 ---
 
-### OrderItemOption（订单配料）
+### 🧪 OrderItemOption（订单中某个选项）
 
-| 字段名     | 类型    | 说明                   |
-|------------|---------|------------------------|
-| groupName  | String? | 所属选项组名称（快照）|
-| optionName | String  | 配料名称（如“加蛋”） |
-| priceDelta | Decimal | 加价金额               |
+| 字段名    | 类型     | 说明                         |
+|-----------|----------|------------------------------|
+| id        | String   | 主键 UUID                    |
+| optionName| String   | 配料名称快照（如“加蛋”）     |
+| groupName | String?  | 所属组名快照（如“附加”）     |
+| priceDelta| Decimal  | 当时加价金额                 |
+
+---
+
+### 📘 枚举类型
+
+#### AdminRole
+
+- ADMIN
+- MANAGER
+- STAFF
+- READONLY
+
+#### OrderStatus
+
+- PENDING
+- IN_PROGRESS
+- COMPLETED
+- CANCELLED
+
+#### PaymentStatus
+
+- UNPAID
+- PAID
+
 ---
 
 ## 🖼 实体关系图（ER 图）

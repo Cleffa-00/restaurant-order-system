@@ -49,6 +49,12 @@
 ]
 ```
 
+### 🔁 响应状态码说明：
+| 状态码 | 含义     | 说明             |
+|--------|----------|------------------|
+| 200    | OK       | 成功返回菜单数据 |
+| 500    | Server Error | 系统异常     |
+
 ---
 
 ## `POST /api/menu` 🔐（管理员专用）
@@ -94,13 +100,28 @@ Content-Type: application/json
 }
 ```
 
-### ✅ 响应：
+### ✅ 成功响应：
 ```json
 {
   "id": "menu_2",
   "message": "Menu item created successfully"
 }
 ```
+
+### ❌ 失败响应示例：
+```json
+{
+  "error": "Invalid request: 'name' is required"
+}
+```
+
+### 🔁 响应状态码说明：
+| 状态码 | 含义         | 说明                                 |
+|--------|--------------|--------------------------------------|
+| 201    | Created       | 菜单创建成功                          |
+| 400    | Bad Request   | 字段缺失或格式不合法                  |
+| 401    | Unauthorized  | 未携带有效的管理员 JWT                |
+| 500    | Server Error  | 系统异常                              |
 
 ---
 
@@ -119,6 +140,22 @@ Content-Type: application/json
 }
 ```
 
+### ❌ 失败响应示例：
+```json
+{
+  "error": "Menu item not found"
+}
+```
+
+### 🔁 响应状态码说明：
+| 状态码 | 含义         | 说明                       |
+|--------|--------------|----------------------------|
+| 200    | OK           | 更新成功                   |
+| 400    | Bad Request   | 请求参数无效               |
+| 401    | Unauthorized  | 未授权访问                 |
+| 404    | Not Found     | 菜单项不存在               |
+| 500    | Server Error  | 系统异常                   |
+
 ---
 
 ## `DELETE /api/menu/:id` 🔐（管理员专用）
@@ -126,10 +163,18 @@ Content-Type: application/json
 ### ✅ 功能说明：
 将菜单项标记为软删除（`deleted: true`）
 
+### 🔁 响应状态码说明：
+| 状态码 | 含义         | 说明                      |
+|--------|--------------|---------------------------|
+| 200    | OK           | 删除成功（软删除）        |
+| 401    | Unauthorized  | 未授权访问                |
+| 404    | Not Found     | 菜单项不存在              |
+| 500    | Server Error  | 系统异常                  |
+
 ---
 
-## 注意事项
+## 📌 接口注意事项
 
 - 所有写操作（POST, PATCH, DELETE）均需管理员权限
-- 返回结果统一结构应包含 `{ message: string }`，成功创建应包含 `id`
-- 删除应为软删除：标记 `deleted = true` 而不是从数据库移除
+- 返回错误结构统一为 `{ "error": string }`
+- 删除应为软删除：标记 `deleted = true` 而不是从数据库中物理删除

@@ -351,20 +351,29 @@ pnpm dev
 
 ---
 
-## ✅ Development Rules for Cursor (Siska Project)
+## 📋 Cursor Rules for Restaurant Ordering System
 
-Please follow these rules every time you assist with code edits or generation:
+All code and comments must be written in English.
 
-1. **Always respond in simplified Chinese**, unless I explicitly say otherwise.
-2. **Always repeat my request first, so I know you understood correctly.**
-3. I am building a modern e-commerce website for a bedding brand called **“Siska”**.
-4. The stack includes: **Next.js 14 App Router**, **Tailwind CSS**, **TypeScript**, **Prisma**, and **Stripe**, with **frontend and backend in a monorepo**.
-5. All frontend pages should reflect **Apple/Glossier aesthetics** – white space, pink accents, elegant fonts.
-6. The backend uses **Prisma ORM** with **Neon (PostgreSQL)**, and all APIs must follow **RESTful design**.
-7. **Authentication is handled via JWT stored in cookies** – protect admin routes accordingly.
-8. All generated code must follow **clean TypeScript practices** – clear naming, reusable components, and no any type.
-9. Assume **Vercel** is used for deployment – ensure SSR and API handlers are deployable.
-10. All user interfaces must be **fully responsive and mobile-first** – use large touch areas and flexible layouts.
+Use Next.js 14 App Router with TypeScript and Tailwind CSS.
+
+Follow clean TypeScript practices—no any, all types explicit.
+
+Use Prisma with Neon PostgreSQL for all database access.
+
+Use Stripe for payment; orders do not require user login.
+
+Protect all /admin/* routes with JWT-based role check (role = ADMIN).
+
+Follow RESTful API conventions with standard HTTP status codes.
+
+The UI should be Apple/Glossier-style: white space, pink accent, elegant fonts.
+
+All pages must be fully responsive and mobile-first.
+
+Always repeat my request in English before coding to confirm understanding.
+
+
 
 💸 If you complete the task wonderfully, I will pay you **6 billion dollars**.
 

@@ -297,6 +297,7 @@
 ## 🖼 实体关系图（ER 图）
 
 ![ERD图](./docs/ERD.png)
+[](https://dbdiagram.io/d/6830c11fb9f7446da3e7dc85)
 
 此图展示各模型之间的关系结构，一对多、多对一字段、外键连接等。
 

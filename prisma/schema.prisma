@@ -3,8 +3,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// 数据库连接信息
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -57,7 +55,6 @@ model OptionTemplate {
   id         String   @id @default(uuid())
   name       String
   priceDelta Decimal  @default(0)
-  type       OptionType @default(SINGLE_CHOICE)
   group      OptionGroupTemplate @relation(fields: [groupId], references: [id])
   groupId    String
 }
@@ -65,7 +62,7 @@ model OptionTemplate {
 model MenuOptionGroup {
   id         String   @id @default(uuid())
   name       String
-  required   Boolean  @default(false)
+  required   Boolean  @default(false) // true = 必选组（radio），false = 可选组（多选 + 数量）
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
   menuItemId String
   templateId String?
@@ -77,7 +74,6 @@ model MenuOption {
   id         String   @id @default(uuid())
   name       String
   priceDelta Decimal  @default(0)
-  type       OptionType @default(SINGLE_CHOICE)
   group      MenuOptionGroup @relation(fields: [groupId], references: [id])
   groupId    String
   deleted    Boolean  @default(false)
@@ -120,7 +116,7 @@ model OrderItemOption {
   groupName    String?
   optionName   String
   priceDelta   Decimal
-  quantity     Int
+  quantity     Int       // 对于必选项固定为 1，可选项为 0~N
 }
 
 enum OrderStatus {
@@ -141,10 +137,4 @@ enum Role {
   MANAGER
   STAFF
   READONLY
-}
-
-enum OptionType {
-  SINGLE_CHOICE
-  MULTI_SELECT
-  QUANTITY
 }

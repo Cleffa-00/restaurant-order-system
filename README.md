@@ -19,8 +19,6 @@ This system is optimized for mobile users:
 - Sticky bottom cart and checkout actions
 - Optimized performance and image delivery
 
-👉 [📄 页面功能详解文档](./docs/PAGE_BREAKDOWN.md)
-
 ## 📁 Key Routes
 
 - `/menu` – Browse menu items
@@ -29,6 +27,8 @@ This system is optimized for mobile users:
 - `/admin/menu` – Admin menu management
 - `/admin/orders` – Admin order tracking
 - `/auth/login` – Admin login
+
+👉 [📄 页面功能详解文档](./docs/PAGE_BREAKDOWN.md)
 
 ## 🔧 Environment Setup
 

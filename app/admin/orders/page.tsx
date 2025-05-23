@@ -3,10 +3,6 @@
 import { useState } from 'react'
 import { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Orders Management | Admin Dashboard',
-  description: 'Manage customer orders',
-}
 
 interface OrderItem {
   id: string

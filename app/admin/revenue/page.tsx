@@ -3,10 +3,6 @@
 import { useState } from 'react'
 import { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Revenue Analytics | Admin Dashboard',
-  description: 'Track and analyze restaurant revenue',
-}
 
 interface RevenueData {
   date: string

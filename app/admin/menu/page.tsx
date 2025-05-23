@@ -13,11 +13,6 @@ interface MenuItem {
   active: boolean
 }
 
-export const metadata: Metadata = {
-  title: 'Menu Management | Admin Dashboard',
-  description: 'Manage restaurant menu items',
-}
-
 export default function AdminMenuPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentItem, setCurrentItem] = useState<MenuItem | null>(null)

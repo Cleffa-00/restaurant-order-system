@@ -9,9 +9,11 @@ export function middleware(request: NextRequest) {
   const isAdminPath = path.startsWith('/admin')
   
   // If it's not a protected path, allow the request
-  if (!isAdminPath) {
-    return NextResponse.next()
-  }
+  
+  // if (!isAdminPath) {
+  //   return NextResponse.next()
+  // }
+  return NextResponse.next()
 
   // Get the token from cookies
   const token = request.cookies.get('admin-token')?.value

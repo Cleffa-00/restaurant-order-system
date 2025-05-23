@@ -1,0 +1,9 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/menu/page": "app/menu/page.js",
+  "/checkout/page": "app/checkout/page.js",
+  "/cart/page": "app/cart/page.js",
+  "/success/page": "app/success/page.js",
+  "/auth/login/page": "app/auth/login/page.js"
+}

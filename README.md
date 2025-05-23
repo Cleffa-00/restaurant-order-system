@@ -102,9 +102,39 @@ This system is optimized for mobile users:
 | optionGroups | 关联 | 配料选项组 |
 | orderItems | 关联 | 关联订单项 |
 
-### MenuOptionGroup & MenuOption
-- OptionGroup：包含名称、是否为必选
-- Option：包含配料名称、附加价
+### 🧂 MenuOptionGroup & MenuOption（配料选项结构）
+
+#### 📦 `MenuOptionGroup`（选项组）
+- 每个 `MenuItem`（菜单项）可关联多个选项组
+- 每组表示一个**配料类别**或**个性化要求**（例如：“辣度”、“附加”）
+- 包含以下字段：
+  - `name`：例如“辣度”、“附加配料”
+  - `required`：是否为必选（如“辣度”必选，而“加蛋”非必选）
+  - `menuItemId`：外键，关联所属菜单项
+  - `options[]`：选项项数组
+
+#### 🧂 `MenuOption`（选项项）
+- 每个 `MenuOption` 记录一个具体选项，例如“微辣”、“加蛋”、“去冰”
+- 属于某个选项组（`groupId` 外键）
+- 包含以下字段：
+  - `name`：显示给用户的名称，如“加蛋”
+  - `priceDelta`：附加价格（如 +1.0），默认可为 0
+  - `groupId`：所属的选项组 ID
+
+#### 🔗 使用示例：
+- 菜品 “香煎鸡排” 可有以下两个选项组：
+  1. `辣度`（必选）：
+     - 不辣（+0）
+     - 微辣（+0.5）
+     - 特辣（+1.0）
+  2. `附加`（可选）：
+     - 加蛋（+1.0）
+     - 加芝士（+1.5）
+
+#### ✅ 用户端使用逻辑：
+- 弹出菜品详情窗口时，用户需从每个 `required: true` 的组中选择一项
+- 可在 `optional` 的组中选择 0 个或多个
+- 所有选项自动计算 `priceDelta` 叠加入最终价格
 
 ### Order
 | 字段 | 类型 | 描述 |

@@ -1,2 +1,13 @@
 *.sh
 .env*
+
+# Prisma
+/prisma/dev.db          # 如果你使用 SQLite 本地数据库
+/prisma/*.db-journal
+/prisma/migrations/     # 如果你不想提交迁移记录（建议提交时保留）
+/prisma/ERD.svg         # 如果生成了关系图
+
+# Node
+/node_modules
+/.prisma                # Prisma 在 node_modules 中生成的缓存（自动忽略）
+.env                    # 包含数据库连接等敏感信息

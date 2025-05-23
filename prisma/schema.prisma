@@ -2,6 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "./ERD.svg"
+}
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -23,7 +27,7 @@ model MenuItem {
   available   Boolean            @default(true)
   category    String?
   optionGroups MenuOptionGroup[]
-  orderItems  OrderItem[]
+  orderItems   OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -47,21 +51,21 @@ model MenuOption {
 }
 
 model Order {
-  id           String       @id @default(uuid())
-  phone        String
-  name         String
-  status       OrderStatus  @default(PENDING)
-  totalPrice   Decimal
-  paymentStatus PaymentStatus @default(UNPAID)
-  items        OrderItem[]
-  createdAt    DateTime     @default(now())
+  id            String         @id @default(uuid())
+  phone         String
+  name          String
+  status        OrderStatus    @default(PENDING)
+  totalPrice    Decimal
+  paymentStatus PaymentStatus  @default(UNPAID)
+  items         OrderItem[]
+  createdAt     DateTime       @default(now())
 }
 
 model OrderItem {
-  id         String       @id @default(uuid())
-  order      Order        @relation(fields: [orderId], references: [id])
+  id         String     @id @default(uuid())
+  order      Order      @relation(fields: [orderId], references: [id])
   orderId    String
-  menuItem   MenuItem     @relation(fields: [menuItemId], references: [id])
+  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id])
   menuItemId String
   quantity   Int
   note       String?

@@ -7,7 +7,7 @@
 ## `GET /api/menu`
 
 ### ✅ 功能说明：
-获取所有上架的菜单项（available: true）及其配料结构。
+获取所有上架的菜单项（`available: true`）及其配料结构。
 
 ### ✅ 请求示例：
 无需参数
@@ -19,9 +19,12 @@
     "id": "menu_1",
     "name": "番茄炒蛋",
     "description": "经典家常菜",
-    "price": 12.50,
+    "price": 12.5,
     "imageUrl": "https://example.com/tomato_egg.jpg",
-    "category": "主菜",
+    "category": {
+      "id": "cat_main",
+      "name": "主菜"
+    },
     "optionGroups": [
       {
         "id": "group_1",
@@ -30,6 +33,15 @@
         "options": [
           { "id": "opt_1", "name": "不辣", "priceDelta": 0 },
           { "id": "opt_2", "name": "微辣", "priceDelta": 0.5 }
+        ]
+      },
+      {
+        "id": "group_2",
+        "name": "加料",
+        "required": false,
+        "options": [
+          { "id": "opt_3", "name": "加蛋", "priceDelta": 1 },
+          { "id": "opt_4", "name": "加豆腐", "priceDelta": 1.5 }
         ]
       }
     ]
@@ -57,10 +69,10 @@ Content-Type: application/json
 ```json
 {
   "name": "香煎鸡排",
-  "description": "香脆可口",
+  "description": "香脆多汁",
   "price": 18.00,
   "imageUrl": "https://example.com/chicken.jpg",
-  "category": "主菜",
+  "categoryId": "cat_main",
   "optionGroups": [
     {
       "name": "辣度",
@@ -68,6 +80,14 @@ Content-Type: application/json
       "options": [
         { "name": "不辣", "priceDelta": 0 },
         { "name": "微辣", "priceDelta": 0.5 }
+      ]
+    },
+    {
+      "name": "加料",
+      "required": false,
+      "options": [
+        { "name": "加蛋", "priceDelta": 1 },
+        { "name": "加豆腐", "priceDelta": 1.5 }
       ]
     }
   ]
@@ -95,7 +115,7 @@ Content-Type: application/json
   "name": "香煎鸡排（升级版）",
   "price": 21.50,
   "available": true,
-  "category": "主菜"
+  "categoryId": "cat_main"
 }
 ```
 
@@ -104,7 +124,7 @@ Content-Type: application/json
 ## `DELETE /api/menu/:id` 🔐（管理员专用）
 
 ### ✅ 功能说明：
-将菜单项标记为软删除（deleted: true）
+将菜单项标记为软删除（`deleted: true`）
 
 ---
 

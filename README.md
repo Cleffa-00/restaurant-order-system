@@ -120,7 +120,7 @@
 
 ## 🗃 数据库结构（基于 Prisma + Neon）
 
-本数据库使用 Prisma 构建，支持分类管理、模板化菜单选项、顾客关联订单、管理员分级权限等功能模块。
+本数据库使用 Prisma 构建，支持分类管理、模板化菜单选项、顾客关联订单、管理员分级权限、配料数量等功能模块。
 
 ---
 
@@ -190,6 +190,7 @@
 | id        | String   | 主键 UUID      |
 | name      | String   | 选项名         |
 | priceDelta| Decimal  | 加价金额       |
+| type      | OptionType | 选项类型（如单选、可选、数量） |
 | groupId   | String   | 所属模板组 ID  |
 
 ---
@@ -215,6 +216,7 @@
 | id        | String   | 主键 UUID      |
 | name      | String   | 配料名称       |
 | priceDelta| Decimal  | 加价金额       |
+| type      | OptionType | 选项类型       |
 | groupId   | String   | 所属选项组 ID  |
 | deleted   | Boolean  | 是否软删除     |
 
@@ -261,7 +263,8 @@
 | id        | String   | 主键 UUID                    |
 | optionName| String   | 配料名称快照（如“加蛋”）     |
 | groupName | String?  | 所属组名快照（如“附加”）     |
-| priceDelta| Decimal  | 当时加价金额                 |
+| priceDelta| Decimal  | 加价金额（单份）             |
+| quantity  | Int      | 配料数量                     |
 
 ---
 
@@ -283,6 +286,11 @@
 #### PaymentStatus
 - UNPAID
 - PAID
+
+#### OptionType
+- SINGLE_CHOICE（单选）
+- MULTI_SELECT（可多选）
+- QUANTITY（需加数量）
 
 ---
 

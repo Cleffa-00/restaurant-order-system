@@ -4,6 +4,8 @@
 .env.*
 !.env.example
 
+.next/
+
 # Prisma
 /prisma/dev.db          # 如果你使用 SQLite 本地数据库
 /prisma/*.db-journal

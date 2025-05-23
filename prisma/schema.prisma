@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model MenuItem {
+  id          String             @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal
+  imageUrl    String?
+  available   Boolean            @default(true)
+  category    String?
+  optionGroups MenuOptionGroup[]
+  orderItems  OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MenuOptionGroup {
+  id         String       @id @default(uuid())
+  name       String
+  required   Boolean      @default(false)
+  menuItem   MenuItem     @relation(fields: [menuItemId], references: [id])
+  menuItemId String
+  options    MenuOption[]
+}
+
+model MenuOption {
+  id         String       @id @default(uuid())
+  name       String
+  priceDelta Decimal      @default(0)
+  group      MenuOptionGroup @relation(fields: [groupId], references: [id])
+  groupId    String
+}
+
+model Order {
+  id           String       @id @default(uuid())
+  phone        String
+  name         String
+  status       OrderStatus  @default(PENDING)
+  totalPrice   Decimal
+  paymentStatus PaymentStatus @default(UNPAID)
+  items        OrderItem[]
+  createdAt    DateTime     @default(now())
+}
+
+model OrderItem {
+  id         String       @id @default(uuid())
+  order      Order        @relation(fields: [orderId], references: [id])
+  orderId    String
+  menuItem   MenuItem     @relation(fields: [menuItemId], references: [id])
+  menuItemId String
+  quantity   Int
+  note       String?
+  options    OrderItemOption[]
+  unitPrice  Decimal
+}
+
+model OrderItemOption {
+  id           String       @id @default(uuid())
+  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id])
+  orderItemId  String
+  optionName   String
+  priceDelta   Decimal
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}

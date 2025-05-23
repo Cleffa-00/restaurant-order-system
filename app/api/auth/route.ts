@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// TODO: Implement /api/auth
+
 // POST /api/auth
 export async function POST(req: NextRequest) {
   // TODO: Admin login

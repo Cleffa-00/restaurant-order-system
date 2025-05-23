@@ -34,13 +34,13 @@ This system is optimized for mobile users:
 
 - [📄 页面功能详解](./docs/PAGE_BREAKDOWN.md)
 - [🔌 API 接口导航总览](./docs/api/API_OVERVIEW.md)
-- [🍽 菜单接口](./docs/api/MENU_ROUTES.md)
-- [🧩 配料选项组接口](./docs/api/OPTION_GROUP_ROUTES.md)
-- [🛒 订单接口](./docs/api/ORDER_ROUTES.md)
-- [💳 Stripe 支付接口](./docs/api/STRIPE_ROUTES.md)
-- [🔐 管理员认证接口](./docs/api/AUTH_ROUTES.md)
-- [📈 营收接口（后期开发）](./docs/api/REVENUE_ROUTES.md)
-- [🧪 请求示例参考](./docs/api/API_REQUEST_EXAMPLES.md)
+    - [🍽 菜单接口](./docs/api/MENU_ROUTES.md)
+    - [🧩 配料选项组接口](./docs/api/OPTION_GROUP_ROUTES.md)
+    - [🛒 订单接口](./docs/api/ORDER_ROUTES.md)
+    - [💳 Stripe 支付接口](./docs/api/STRIPE_ROUTES.md)
+    - [🔐 管理员认证接口](./docs/api/AUTH_ROUTES.md)
+    - [📈 营收接口（后期开发）](./docs/api/REVENUE_ROUTES.md)
+    - [🧪 请求示例参考](./docs/api/API_REQUEST_EXAMPLES.md)
 
 ## 🔧 Environment Setup
 

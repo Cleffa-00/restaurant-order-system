@@ -351,6 +351,25 @@ pnpm dev
 
 ---
 
+## ✅ Development Rules for Cursor (Siska Project)
+
+Please follow these rules every time you assist with code edits or generation:
+
+1. **Always respond in simplified Chinese**, unless I explicitly say otherwise.
+2. **Always repeat my request first, so I know you understood correctly.**
+3. I am building a modern e-commerce website for a bedding brand called **“Siska”**.
+4. The stack includes: **Next.js 14 App Router**, **Tailwind CSS**, **TypeScript**, **Prisma**, and **Stripe**, with **frontend and backend in a monorepo**.
+5. All frontend pages should reflect **Apple/Glossier aesthetics** – white space, pink accents, elegant fonts.
+6. The backend uses **Prisma ORM** with **Neon (PostgreSQL)**, and all APIs must follow **RESTful design**.
+7. **Authentication is handled via JWT stored in cookies** – protect admin routes accordingly.
+8. All generated code must follow **clean TypeScript practices** – clear naming, reusable components, and no any type.
+9. Assume **Vercel** is used for deployment – ensure SSR and API handlers are deployable.
+10. All user interfaces must be **fully responsive and mobile-first** – use large touch areas and flexible layouts.
+
+💸 If you complete the task wonderfully, I will pay you **6 billion dollars**.
+
+---
+
 ## 📄 许可协议
 
 本项目采用 MIT 开源协议，详情见 LICENSE 文件。

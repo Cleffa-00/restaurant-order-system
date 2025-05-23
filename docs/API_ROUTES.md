@@ -42,12 +42,31 @@
 **请求：**
 ```json
 {
-  "name": "凉拌黄瓜",
-  "price": 6.50,
-  "description": "清爽开胃",
-  "category": "凉菜",
+  "name": "香煎鸡排",
+  "price": 18.5,
+  "description": "外酥里嫩，推荐加蛋",
+  "category": "主食",
   "available": true,
-  "optionGroups": []
+  "imageUrl": "https://example.com/chicken.jpg",
+  "optionGroups": [
+    {
+      "name": "辣度",
+      "required": true,
+      "options": [
+        { "name": "不辣", "priceDelta": 0 },
+        { "name": "微辣", "priceDelta": 0.5 },
+        { "name": "特辣", "priceDelta": 1.0 }
+      ]
+    },
+    {
+      "name": "附加",
+      "required": false,
+      "options": [
+        { "name": "加蛋", "priceDelta": 1.0 },
+        { "name": "加芝士", "priceDelta": 1.5 }
+      ]
+    }
+  ]
 }
 ```
 
@@ -98,16 +117,29 @@
 **请求：**
 ```json
 {
-  "name": "Alice",
+  "name": "Alice Wang",
   "phone": "1234567890",
   "items": [
     {
       "menuItemId": "menu_1",
       "quantity": 2,
-      "note": "不要葱",
+      "note": "少辣不要葱",
       "options": [
-        { "optionName": "微辣", "priceDelta": 0.5 }
+        {
+          "optionName": "微辣",
+          "priceDelta": 0.5
+        },
+        {
+          "optionName": "加蛋",
+          "priceDelta": 1.0
+        }
       ]
+    },
+    {
+      "menuItemId": "menu_2",
+      "quantity": 1,
+      "note": "",
+      "options": []
     }
   ]
 }
@@ -166,6 +198,10 @@
 { "message": "Order status updated" }
 ```
 
+✅ 建议：
+- 状态必须是 `"PENDING"`, `"IN_PROGRESS"`, `"COMPLETED"`, `"CANCELLED"` 中之一
+- 严格校验，避免非法状态进入系统
+
 ---
 
 ## 💳 支付相关接口
@@ -185,6 +221,9 @@
   "sessionId": "cs_test_123"
 }
 ```
+
+✅ 建议：
+- 不需要其他字段，订单 ID 足够（因为订单内容已记录在 DB 中）
 
 ---
 
@@ -222,6 +261,10 @@
 }
 ```
 
+✅ 建议：
+- 密码必须为明文传输，由 HTTPS 保证加密
+- 不建议为空字符串或缺字段
+
 ---
 
 ## 📈 后续可拓展接口（计划阶段）
@@ -251,3 +294,10 @@
   { "id": "order_124", "status": "PAID", "total": 10.99 }
 ]
 ```
+
+---
+
+## 📌 注意事项
+
+- 所有 JSON 请求建议在前端层处理空字符串、空数组，**避免省略字段**
+- 如果你使用 TypeScript + Zod 进行校验，可以严格定义所有请求格式，避免后端判断不一致

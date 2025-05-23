@@ -1,13 +1,13 @@
-# 🔐 管理员认证接口文档（AUTH_ROUTES.md）
+# 🔐 用户认证接口文档（AUTH_ROUTES.md）
 
-该模块用于管理员身份登录、获取 JWT，以及中间件验证鉴权访问受限 API。
+本模块用于处理用户（包含管理员）的登录流程，颁发 JWT Token 并在中间件中校验权限。
 
 ---
 
 ## `POST /api/auth/login`
 
 ### ✅ 功能说明：
-管理员登录，验证邮箱与密码，返回 JWT 用于后续请求鉴权。
+用户登录接口，验证邮箱和密码是否匹配，登录成功后返回带有权限角色的 JWT。
 
 ### ✅ 请求体：
 ```json
@@ -21,7 +21,7 @@
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "admin": {
+  "user": {
     "id": "user_abc",
     "email": "admin@example.com",
     "role": "ADMIN"
@@ -44,31 +44,36 @@
 
 ---
 
-## 中间件鉴权说明
+## 🔐 中间件权限说明
 
-后台页面（如 `/admin/menu`）或敏感接口需使用 JWT 鉴权。
+所有受限页面或 API 需校验 JWT 中的用户身份。常见场景：
 
-在 Next.js 中间件中需实现如下逻辑：
+### ✅ 示例：
+- 管理员访问 `/admin/*` 页面或 API 时，需校验：
+```ts
+if (decoded.role !== 'ADMIN') {
+  return NextResponse.redirect('/auth/login');
+}
+```
 
-### ✅ 行为规则：
-- 请求头包含：
-  ```http
-  Authorization: Bearer your_jwt_here
-  ```
-- 若无效：
-  - 页面请求：重定向至 `/auth/login`
-  - API 请求：返回 401 错误，由接口自行处理
-
----
-
-## JWT 验证说明
-
-- 使用 `jsonwebtoken` 验证，密钥为 `process.env.JWT_SECRET`
-- 建议有效期为 7 天，可通过 `exp` 字段控制
+- API 层权限检查（如修改订单）：
+```ts
+if (!decoded || decoded.role !== 'ADMIN') {
+  return res.status(401).json({ error: "Unauthorized" });
+}
+```
 
 ---
 
-## 📌 注意事项
+## 📘 JWT 签名说明
 
-- 所有管理员写操作（新增菜单、修改订单状态等）必须使用此 JWT
-- 前端可将 token 存储于 cookie 或 memory 中
+- 使用 `jsonwebtoken` 库签发和验证
+- 签发时包含字段：`id`, `email`, `role`
+- 使用 `.env` 中的 `JWT_SECRET` 进行签名
+
+---
+
+## 📌 其他说明
+
+- 若未来支持顾客注册登录，可使用 `role = CUSTOMER` 区分
+- 管理员用户由系统初始化或后台创建，不开放注册入口

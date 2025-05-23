@@ -56,9 +56,20 @@
 
 ---
 
-## `POST /api/menu`
+## `POST /api/menu` 🔐（需要管理员身份）
 
 添加一个新菜单项（含选项组）
+
+> 本接口需要管理员身份（JWT 鉴权）。请在请求 Header 中附加：
+>
+> `Authorization: Bearer YOUR_JWT_TOKEN`
+
+### ✅ Headers 示例
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6...
+Content-Type: application/json
+```
 
 ### ✅ 请求体示例：
 
@@ -102,9 +113,13 @@
 
 ---
 
-## `PATCH /api/menu/:id`
+## `PATCH /api/menu/:id` 🔐（需要管理员身份）
 
 更新菜单项内容。
+
+> 本接口需要管理员身份（JWT 鉴权）。请在请求 Header 中附加：
+>
+> `Authorization: Bearer YOUR_JWT_TOKEN`
 
 ### ✅ 请求体示例：
 
@@ -127,9 +142,13 @@
 
 ---
 
-## `DELETE /api/menu/:id`
+## `DELETE /api/menu/:id` 🔐（需要管理员身份）
 
 删除指定菜单项（不可恢复）
+
+> 本接口需要管理员身份（JWT 鉴权）。请在请求 Header 中附加：
+>
+> `Authorization: Bearer YOUR_JWT_TOKEN`
 
 ### ✅ 响应：
 

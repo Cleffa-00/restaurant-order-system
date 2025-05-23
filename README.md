@@ -32,7 +32,7 @@ This system is optimized for mobile users:
 
 ## 📚 Documentation Links
 
-- [📄 页面功能详解（实用版）](./docs/PAGE_BREAKDOWN_REALISTIC.md)
+- [📄 页面功能详解](./docs/PAGE_BREAKDOWN.md)
 - [🔌 API 接口导航总览](./docs/api/API_OVERVIEW.md)
 - [🍽 菜单接口](./docs/api/MENU_ROUTES.md)
 - [🧩 配料选项组接口](./docs/api/OPTION_GROUP_ROUTES.md)

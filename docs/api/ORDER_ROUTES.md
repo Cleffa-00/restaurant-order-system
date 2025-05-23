@@ -1,35 +1,28 @@
 # 🛒 订单接口文档（ORDER_ROUTES.md）
 
-订单接口提供用户下单与支付前的信息提交，管理员可查看订单并更新状态。
+该模块用于用户下单、查看订单，以及管理员查看和更新订单状态。
 
 ---
 
 ## `POST /api/orders`
 
 ### ✅ 功能说明：
-创建新订单，包含用户信息、菜品项、选项选择、备注等。
+用户创建订单。无需登录，需提供手机号、姓名、购物车详情、配料、备注等。
 
-### ✅ 请求体：
+### ✅ 请求体示例：
 ```json
 {
-  "name": "王小明",
+  "name": "张三",
   "phone": "1234567890",
-  "orderSource": "mobile-web",
-  "customerNote": "尽快送上",
+  "note": "不要葱",
   "items": [
     {
-      "menuItemId": "menu_1",
+      "menuItemId": "item_001",
       "quantity": 2,
-      "note": "不要葱",
+      "note": "微辣",
       "options": [
-        { "optionName": "不辣", "groupName": "辣度", "priceDelta": 0 }
-      ]
-    },
-    {
-      "menuItemId": "menu_2",
-      "quantity": 1,
-      "options": [
-        { "optionName": "加蛋", "groupName": "加料", "priceDelta": 1 }
+        { "groupName": "辣度", "optionName": "微辣", "priceDelta": 0.5 },
+        { "groupName": "加料", "optionName": "加蛋", "priceDelta": 1.0 }
       ]
     }
   ]
@@ -39,89 +32,72 @@
 ### ✅ 成功响应：
 ```json
 {
-  "orderId": "order_123",
-  "message": "Order created"
+  "orderId": "order_abc123",
+  "status": "PENDING"
 }
 ```
 
-### ❌ 失败响应示例：
-```json
-{ "error": "Invalid phone number" }
-```
-
-### 🔁 响应状态码说明：
-| 状态码 | 含义         | 说明                       |
-|--------|--------------|----------------------------|
-| 201    | Created      | 创建成功                   |
-| 400    | Bad Request  | 参数无效、字段缺失         |
-| 500    | Server Error | 系统异常                   |
-
 ---
 
-## `GET /api/orders/:id` 🔐（管理员专用）
+## `GET /api/orders/:id`
 
 ### ✅ 功能说明：
-获取订单详情（包括下单人、状态、菜品及配料快照）。
+用户或后台查询某笔订单信息。
 
-### ✅ 响应示例：
+### ✅ 成功响应：
 ```json
 {
-  "id": "order_123",
-  "name": "王小明",
+  "id": "order_abc123",
+  "name": "张三",
   "phone": "1234567890",
   "status": "PENDING",
   "paymentStatus": "UNPAID",
-  "totalPrice": 43.5,
+  "user": {
+    "id": "user_001",
+    "name": "张三",
+    "role": "CUSTOMER"
+  },
   "items": [
     {
-      "menuItemName": "番茄炒蛋",
+      "menuItemName": "鱼香肉丝",
       "quantity": 2,
-      "unitPrice": 12.5,
+      "unitPrice": 15.0,
+      "note": "微辣",
       "options": [
-        { "groupName": "辣度", "optionName": "不辣", "priceDelta": 0 }
+        { "optionName": "微辣", "groupName": "辣度", "priceDelta": 0.5 }
       ]
     }
   ]
 }
 ```
 
-### 🔁 响应状态码说明：
-| 状态码 | 含义         | 说明                       |
-|--------|--------------|----------------------------|
-| 200    | OK           | 获取成功                   |
-| 401    | Unauthorized | 缺少管理员权限             |
-| 404    | Not Found    | 订单不存在                 |
-| 500    | Server Error | 系统异常                   |
-
 ---
 
-## `PATCH /api/orders/:id/status` 🔐（管理员专用）
+## `PATCH /api/orders/:id/status`
 
 ### ✅ 功能说明：
-更新订单状态（如接单、制作中、完成、取消）
+管理员更新订单状态和支付状态。
 
-### ✅ 请求体：
+### ✅ 请求体示例：
 ```json
 {
-  "status": "IN_PROGRESS",
+  "status": "COMPLETED",
   "paymentStatus": "PAID"
 }
-
 ```
 
-### 🔁 响应状态码说明：
-| 状态码 | 含义         | 说明                       |
-|--------|--------------|----------------------------|
-| 200    | OK           | 状态更新成功               |
-| 400    | Bad Request  | 状态值非法                 |
-| 401    | Unauthorized | 缺少权限                   |
-| 404    | Not Found    | 订单不存在                 |
-| 500    | Server Error | 系统异常                   |
+### 🔁 响应状态码：
+| 状态码 | 含义         | 说明                |
+|--------|--------------|---------------------|
+| 200    | OK           | 成功更新            |
+| 401    | Unauthorized | 未附带管理员权限     |
+| 404    | Not Found    | 订单不存在          |
+| 500    | Server Error | 内部错误            |
 
 ---
 
 ## 📌 注意事项
 
-- 创建订单时会保存快照（菜名、单价、配料名），即使菜单后续修改也不影响订单
-- 支付状态的变更建议通过 Stripe Webhook 实现（见 Stripe 接口）
-- 状态字段推荐值见枚举：`PENDING`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`
+- 下单不要求登录，但后台可通过 `userId` 追溯订单归属
+- 所有后台更新订单接口需管理员登录（JWT 验证 role）
+- 下单后禁止用户修改订单内容（除非由后台处理）

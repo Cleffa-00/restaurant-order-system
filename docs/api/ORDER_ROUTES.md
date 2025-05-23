@@ -103,8 +103,10 @@
 ### ✅ 请求体：
 ```json
 {
-  "status": "IN_PROGRESS"
+  "status": "IN_PROGRESS",
+  "paymentStatus": "PAID"
 }
+
 ```
 
 ### 🔁 响应状态码说明：

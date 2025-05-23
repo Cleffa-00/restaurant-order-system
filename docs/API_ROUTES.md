@@ -297,6 +297,74 @@
 
 ---
 
+
+## 🧩 配料选项组相关接口（OptionGroup）
+
+用于为菜品添加、修改、删除选项组及其选项内容。
+
+---
+
+### `POST /api/menu/:menuItemId/option-group`
+为某个菜单项添加新的选项组及其选项
+
+**请求：**
+```json
+{
+  "name": "附加配料",
+  "required": false,
+  "options": [
+    { "name": "加蛋", "priceDelta": 1.0 },
+    { "name": "加芝士", "priceDelta": 1.5 },
+    { "name": "双倍肉", "priceDelta": 3.0 }
+  ]
+}
+```
+
+**响应：**
+```json
+{
+  "id": "group_abc123",
+  "message": "Option group created and attached to menu item"
+}
+```
+
+---
+
+### `PATCH /api/option-group/:id`
+更新选项组的名称、必选性、选项列表
+
+**请求：**
+```json
+{
+  "name": "附加内容",
+  "required": true,
+  "options": [
+    { "name": "加蛋", "priceDelta": 1.0 },
+    { "name": "加芝士", "priceDelta": 1.5 },
+    { "name": "去冰", "priceDelta": 0 }
+  ]
+}
+```
+
+**响应：**
+```json
+{ "message": "Option group updated successfully" }
+```
+
+✅ 建议：此接口为全量更新，选项数组将替换原有内容。
+
+---
+
+### `DELETE /api/option-group/:id`
+删除选项组及其所有子选项（级联删除）
+
+**响应：**
+```json
+{ "message": "Option group and its options deleted" }
+```
+
+---
+
 ## 📌 注意事项
 
 - 所有 JSON 请求建议在前端层处理空字符串、空数组，**避免省略字段**

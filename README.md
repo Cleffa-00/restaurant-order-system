@@ -19,6 +19,8 @@ This system is optimized for mobile users:
 - Sticky bottom cart and checkout actions
 - Optimized performance and image delivery
 
+👉 [📄 页面功能详解文档](./docs/PAGE_BREAKDOWN.md)
+
 ## 📁 Key Routes
 
 - `/menu` – Browse menu items

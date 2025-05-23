@@ -9,6 +9,8 @@
 ### ✅ 功能说明：
 为一个已创建的订单发起 Stripe Checkout 支付流程，返回 Stripe 跳转链接。
 
+会向 Checkout Session 中传入 `metadata.orderId` 字段，便于 webhook 确认订单归属。
+
 ### ✅ 请求体：
 ```json
 {
@@ -41,6 +43,8 @@
 
 ### ✅ 功能说明：
 Stripe Webhook 接口用于接收支付完成等状态变更事件，并更新订单支付状态。
+
+该接口将校验 `Stripe-Signature` 请求头签名，防止伪造请求。
 
 > ⚠️ 该接口必须由 Stripe 服务调用，需验证签名。
 

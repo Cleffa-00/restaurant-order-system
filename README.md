@@ -305,6 +305,7 @@
   - [🔐 登录接口](./docs/api/AUTH_ROUTES.md)
   - [📈 营收接口](./docs/api/REVENUE_ROUTES.md)
   - [🧪 请求示例](./docs/api/API_REQUEST_EXAMPLES.md)
+- [🗂 前端目录结构说明（Next.js App Router）](./docs/PROJECT_STRUCTURE.md)
 
 ---
 

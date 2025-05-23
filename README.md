@@ -58,34 +58,84 @@
 
 ---
 
+# 🍽 餐馆点餐系统
+
+这是一个面向移动端优化的餐馆点餐平台，使用 Next.js、TypeScript 和 Stripe 构建。顾客可以通过扫码访问菜单、添加商品至购物车并完成线上支付，管理员可登录后台管理菜单和订单。
+
+---
+
+## 🌟 技术栈
+
+- **Next.js**（App Router）+ **TypeScript**
+- **Tailwind CSS** + **shadcn/ui**
+- **Prisma ORM** + **Neon（PostgreSQL）**
+- **Stripe** 支付集成
+- **JWT 身份认证**
+- **Vercel** 部署前端
+
+---
+
+## 📱 移动端优先设计
+
+- 自适应手机和平板
+- 按钮大且易点击
+- 底部浮动购物车与结账操作栏
+- 图片加载优化、响应迅速
+
+---
+
+## 📁 系统主要页面路由
+
+- `/menu`：菜单浏览页面
+- `/cart`：购物车页面
+- `/checkout`：Stripe 结账流程
+- `/admin/menu`：后台菜单管理
+- `/admin/orders`：后台订单管理
+- `/auth/login`：管理员登录页
+
+---
+
+## ✅ 项目功能模块
+
+### 👤 用户端
+- 菜品浏览与分类筛选
+- 配料弹窗选择（必选/可选/备注）
+- 添加购物车、本地缓存
+- 填写手机号 + 姓名后下单
+- Stripe 支付跳转
+- 成功页面提示（禁止修改撤销）
+
+### 🧑‍💼 管理端
+- 登录后进入后台
+- 管理菜单（增删改查、上下架、配料组设置）
+- 管理订单状态（新订单、高亮、标记完成）
+- 后期支持查看营收统计图表
+
+### 🔐 权限与认证
+- 管理员登录后获得 JWT 存入 Cookie
+- 所有 `/admin/*` 页面与 API 使用中间件权限校验
+- 所有后台写操作 API 均需在请求头添加 Bearer Token
+
+---
+
 ## 🗃 数据库结构（基于 Prisma + Neon）
 
 本数据库使用 Prisma 构建，支持分类管理、模板化菜单选项、顾客关联订单、管理员分级权限等功能模块。
 
 ---
 
-### 👤 AdminUser（管理员账户）
+### 👤 User（用户，含顾客与管理员）
 
 | 字段名   | 类型       | 说明              |
 |----------|------------|-------------------|
 | id       | String     | 主键 UUID         |
 | email    | String     | 登录邮箱，唯一    |
 | password | String     | 加密后密码        |
-| role     | AdminRole  | 管理员角色        |
+| name     | String?    | 姓名或昵称        |
+| phone    | String?    | 手机号（顾客使用）|
+| role     | Role       | 用户角色          |
 | createdAt| DateTime   | 创建时间          |
-
----
-
-### 🧾 Customer（顾客用户）
-
-| 字段名   | 类型     | 说明               |
-|----------|----------|--------------------|
-| id       | String   | 主键 UUID          |
-| phone    | String   | 手机号，唯一        |
-| name     | String?  | 昵称（可选）        |
-| email    | String?  | 邮箱（可选）        |
-| createdAt| DateTime | 注册时间           |
-| orders   | Order[]  | 顾客下的所有订单    |
+| orders   | Order[]    | 关联订单列表      |
 
 ---
 
@@ -181,8 +231,8 @@
 | paymentStatus  | PaymentStatus| 支付状态（如 UNPAID）      |
 | orderSource    | String?      | 下单来源标记（如扫码）     |
 | customerNote   | String?      | 整单备注（如“加快制作”）   |
-| customerId     | String?      | 所属顾客 ID（可选）        |
-| customer       | Customer?    | 关联顾客（可选）           |
+| userId         | String?      | 所属用户 ID（可选）        |
+| user           | User?        | 关联用户（可选）           |
 | items          | OrderItem[]  | 包含的订单项数组           |
 | createdAt      | DateTime     | 下单时间                   |
 
@@ -217,22 +267,20 @@
 
 ### 📘 枚举类型
 
-#### AdminRole
-
+#### Role
+- CUSTOMER
 - ADMIN
 - MANAGER
 - STAFF
 - READONLY
 
 #### OrderStatus
-
 - PENDING
 - IN_PROGRESS
 - COMPLETED
 - CANCELLED
 
 #### PaymentStatus
-
 - UNPAID
 - PAID
 

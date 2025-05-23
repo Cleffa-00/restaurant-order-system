@@ -111,4 +111,5 @@
 ```
 
 主 README 中引用方式：
-👉 [📄 页面功能详解（实用版）](./docs/PAGE_BREAKDOWN_REALISTIC.md)
+👉 [📄 页面功能详解](./docs/PAGE_BREAKDOWN_REALISTIC.md)
+👉 [📄 API功能详解](./API_ROUTES.md)

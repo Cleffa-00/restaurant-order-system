@@ -1,94 +1,138 @@
+// 生成 Prisma 客户端代码
 generator client {
   provider = "prisma-client-js"
 }
 
+// 生成 ER 图（可视化数据结构）
 generator erd {
   provider = "prisma-erd-generator"
   output   = "./ERD.svg"
 }
+
+// 数据库连接信息（使用 PostgreSQL，由环境变量提供）
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+//////////////////////////////////////////////////////////
+// 🧑‍💼 管理员账户（后台登录）
+//////////////////////////////////////////////////////////
 model AdminUser {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
+  id        String   @id @default(uuid()) // 主键 UUID
+  email     String   @unique              // 邮箱唯一，用于登录
+  password  String                        // 存储加密后的密码
+  createdAt DateTime @default(now())     // 创建时间
 }
 
+//////////////////////////////////////////////////////////
+// 🍱 菜品主表
+//////////////////////////////////////////////////////////
 model MenuItem {
-  id          String             @id @default(uuid())
-  name        String
-  description String?
-  price       Decimal
-  imageUrl    String?
-  available   Boolean            @default(true)
-  category    String?
+  id          String   @id @default(uuid()) // 主键 UUID
+  name        String                        // 菜品名称
+  description String?                       // 菜品描述（可选）
+  price       Decimal                       // 基础价格
+  imageUrl    String?                       // 菜品图片链接（可选）
+  available   Boolean   @default(true)      // 是否上架/可点
+  category    String?                       // 菜品分类（如饮料、主食）
+
+  // 一道菜对应多个选项组（辣度、配料等）
   optionGroups MenuOptionGroup[]
+
+  // 一道菜可能出现在多个订单中（反向字段）
   orderItems   OrderItem[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())        // 创建时间
+  updatedAt DateTime @updatedAt             // 自动更新时间
 }
 
+//////////////////////////////////////////////////////////
+// 🧂 配料选项组（如“辣度”/“添加”）
+//////////////////////////////////////////////////////////
 model MenuOptionGroup {
-  id         String       @id @default(uuid())
-  name       String
-  required   Boolean      @default(false)
-  menuItem   MenuItem     @relation(fields: [menuItemId], references: [id])
+  id         String   @id @default(uuid()) // 主键
+  name       String                        // 分组名称（如 辣度）
+  required   Boolean  @default(false)      // 是否为必选
+
+  // 关联到哪个菜品（多对一）
+  menuItem   MenuItem  @relation(fields: [menuItemId], references: [id])
   menuItemId String
+
+  // 一个分组下多个选项
   options    MenuOption[]
 }
 
+//////////////////////////////////////////////////////////
+// 🧂 配料选项（如 微辣 / 加蛋 / 去冰）
+//////////////////////////////////////////////////////////
 model MenuOption {
-  id         String       @id @default(uuid())
-  name       String
-  priceDelta Decimal      @default(0)
+  id         String   @id @default(uuid()) // 主键
+  name       String                        // 选项名称
+  priceDelta Decimal  @default(0)          // 选中该项后加价
+
+  // 属于哪个选项组
   group      MenuOptionGroup @relation(fields: [groupId], references: [id])
   groupId    String
 }
 
+//////////////////////////////////////////////////////////
+// 🧾 顾客订单主表
+//////////////////////////////////////////////////////////
 model Order {
-  id            String         @id @default(uuid())
-  phone         String
-  name          String
-  status        OrderStatus    @default(PENDING)
-  totalPrice    Decimal
-  paymentStatus PaymentStatus  @default(UNPAID)
-  items         OrderItem[]
-  createdAt     DateTime       @default(now())
+  id            String        @id @default(uuid())       // 主键 UUID
+  phone         String                                  // 顾客手机号
+  name          String                                  // 顾客姓名
+  status        OrderStatus   @default(PENDING)         // 订单状态（待制作/完成等）
+  totalPrice    Decimal                                 // 总价
+  paymentStatus PaymentStatus @default(UNPAID)          // 是否已支付
+  items         OrderItem[]                             // 订单中包含哪些菜品
+  createdAt     DateTime       @default(now())          // 下单时间
 }
 
+//////////////////////////////////////////////////////////
+// 📦 订单中单道菜品的记录
+//////////////////////////////////////////////////////////
 model OrderItem {
-  id         String     @id @default(uuid())
-  order      Order      @relation(fields: [orderId], references: [id])
-  orderId    String
-  menuItem   MenuItem   @relation(fields: [menuItemId], references: [id])
-  menuItemId String
-  quantity   Int
-  note       String?
-  options    OrderItemOption[]
-  unitPrice  Decimal
+  id         String   @id @default(uuid()) // 主键
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    String                         // 所属订单 ID
+
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId String                         // 关联的菜品 ID
+
+  quantity   Int                            // 点的数量
+  note       String?                        // 顾客备注（如不要葱）
+  options    OrderItemOption[]              // 顾客为此菜点的选项（加蛋、微辣）
+  unitPrice  Decimal                        // 这道菜单价（下单时快照）
 }
 
+//////////////////////////////////////////////////////////
+// 📋 某道菜的具体配料选择
+//////////////////////////////////////////////////////////
 model OrderItemOption {
-  id           String       @id @default(uuid())
-  orderItem    OrderItem    @relation(fields: [orderItemId], references: [id])
-  orderItemId  String
-  optionName   String
-  priceDelta   Decimal
+  id           String    @id @default(uuid()) // 主键
+  orderItem    OrderItem @relation(fields: [orderItemId], references: [id])
+  orderItemId  String                         // 所属订单菜品
+
+  optionName   String                         // 配料名称（如“加蛋”）
+  priceDelta   Decimal                        // 加价（当时）
 }
 
+//////////////////////////////////////////////////////////
+// ✅ 枚举类型：订单进度状态
+//////////////////////////////////////////////////////////
 enum OrderStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
+  PENDING       // 待接单
+  IN_PROGRESS   // 制作中
+  COMPLETED     // 已完成
+  CANCELLED     // 已取消
 }
 
+//////////////////////////////////////////////////////////
+// ✅ 枚举类型：支付状态
+//////////////////////////////////////////////////////////
 enum PaymentStatus {
-  UNPAID
-  PAID
+  UNPAID        // 未支付
+  PAID          // 已支付
 }

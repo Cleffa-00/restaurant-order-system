@@ -60,7 +60,7 @@
 
 ## 🗃 数据库结构（基于 Prisma + Neon）
 
-本数据库使用 Prisma 构建，支持管理员分级、模板化菜单选项、顾客关联订单等功能模块。
+本数据库使用 Prisma 构建，支持分类管理、模板化菜单选项、顾客关联订单、管理员分级权限等功能模块。
 
 ---
 
@@ -85,7 +85,20 @@
 | name     | String?  | 昵称（可选）        |
 | email    | String?  | 邮箱（可选）        |
 | createdAt| DateTime | 注册时间           |
-| orders   | Order[]  | 该顾客的所有订单    |
+| orders   | Order[]  | 顾客下的所有订单    |
+
+---
+
+### 🗂 Category（菜单分类）
+
+| 字段名   | 类型     | 说明                       |
+|----------|----------|----------------------------|
+| id       | String   | 主键 UUID                  |
+| name     | String   | 分类中文名（如“主食”）     |
+| slug     | String   | 唯一标识符（如“main”）     |
+| order    | Int      | 显示排序（从小到大）       |
+| visible  | Boolean  | 是否展示在前端导航中       |
+| menuItems| MenuItem[] | 属于此分类的菜单项       |
 
 ---
 
@@ -99,8 +112,9 @@
 | price        | Decimal           | 基础价格                  |
 | imageUrl     | String?           | 菜品图片链接（可选）      |
 | available    | Boolean           | 是否当前可下单            |
-| category     | String?           | 菜品分类                  |
 | deleted      | Boolean           | 是否软删除                |
+| categoryId   | String?           | 所属分类 ID               |
+| category     | Category?         | 所属分类对象（可选）      |
 | optionGroups | MenuOptionGroup[] | 该菜单项的选项组副本集合  |
 | orderItems   | OrderItem[]       | 被哪些订单项引用          |
 | createdAt    | DateTime          | 创建时间                  |
@@ -198,6 +212,29 @@
 | optionName| String   | 配料名称快照（如“加蛋”）     |
 | groupName | String?  | 所属组名快照（如“附加”）     |
 | priceDelta| Decimal  | 当时加价金额                 |
+
+---
+
+### 📘 枚举类型
+
+#### AdminRole
+
+- ADMIN
+- MANAGER
+- STAFF
+- READONLY
+
+#### OrderStatus
+
+- PENDING
+- IN_PROGRESS
+- COMPLETED
+- CANCELLED
+
+#### PaymentStatus
+
+- UNPAID
+- PAID
 
 ---
 

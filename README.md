@@ -238,29 +238,6 @@
 
 ---
 
-### 📘 枚举类型
-
-#### AdminRole
-
-- ADMIN
-- MANAGER
-- STAFF
-- READONLY
-
-#### OrderStatus
-
-- PENDING
-- IN_PROGRESS
-- COMPLETED
-- CANCELLED
-
-#### PaymentStatus
-
-- UNPAID
-- PAID
-
----
-
 ## 🖼 实体关系图（ER 图）
 
 ![ER 图 老版本](./docs/ERD.png)

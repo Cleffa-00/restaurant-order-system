@@ -8,6 +8,7 @@ datasource db {
 }
 
 model AdminUser {
+
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
@@ -15,14 +16,22 @@ model AdminUser {
   createdAt DateTime @default(now())
 }
 
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  order     Int
+  visible   Boolean    @default(true)
+  menuItems MenuItem[]
+}
+
 model Customer {
+  orders     Order[]
   id        String   @id @default(uuid())
   phone     String   @unique
   name      String?
   email     String?
   createdAt DateTime @default(now())
-
-  orders    Order[]  // 🔁 必须加这个反向关系
 }
 
 model MenuItem {
@@ -32,7 +41,8 @@ model MenuItem {
   price        Decimal
   imageUrl     String?
   available    Boolean  @default(true)
-  category     String?
+  category     Category? @relation(fields: [categoryId], references: [id])
+  categoryId  String?
   deleted      Boolean  @default(false)
   optionGroups MenuOptionGroup[]
   orderItems   OrderItem[]

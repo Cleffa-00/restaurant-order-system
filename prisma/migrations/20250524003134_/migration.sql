@@ -10,10 +10,9 @@ CREATE TYPE "Role" AS ENUM ('CUSTOMER', 'ADMIN', 'MANAGER', 'STAFF', 'READONLY')
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "name" TEXT,
-    "phone" TEXT,
     "role" "Role" NOT NULL DEFAULT 'CUSTOMER',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -48,45 +47,25 @@ CREATE TABLE "MenuItem" (
 );
 
 -- CreateTable
-CREATE TABLE "OptionGroupTemplate" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "required" BOOLEAN NOT NULL,
-
-    CONSTRAINT "OptionGroupTemplate_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "OptionTemplate" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "priceDelta" DECIMAL(65,30) NOT NULL DEFAULT 0,
-    "groupId" TEXT NOT NULL,
-
-    CONSTRAINT "OptionTemplate_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "MenuOptionGroup" (
     "id" TEXT NOT NULL,
+    "menuItemId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "required" BOOLEAN NOT NULL DEFAULT false,
-    "menuItemId" TEXT NOT NULL,
-    "templateId" TEXT,
     "deleted" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "MenuOptionGroup_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "MenuOption" (
+CREATE TABLE "MenuOptions" (
     "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
+    "optionName" TEXT NOT NULL,
     "priceDelta" DECIMAL(65,30) NOT NULL DEFAULT 0,
     "groupId" TEXT NOT NULL,
     "deleted" BOOLEAN NOT NULL DEFAULT false,
 
-    CONSTRAINT "MenuOption_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "MenuOptions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -110,12 +89,13 @@ CREATE TABLE "OrderItem" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "menuItemId" TEXT NOT NULL,
-    "menuItemName" TEXT NOT NULL,
-    "menuItemImage" TEXT,
-    "menuItemCategory" TEXT,
+    "nameSnapshot" TEXT NOT NULL,
+    "imageUrlSnapshot" TEXT,
+    "categorySnapshot" TEXT,
     "quantity" INTEGER NOT NULL,
     "note" TEXT,
     "unitPrice" DECIMAL(65,30) NOT NULL,
+    "finalPrice" DECIMAL(65,30) NOT NULL,
 
     CONSTRAINT "OrderItem_pkey" PRIMARY KEY ("id")
 );
@@ -124,15 +104,17 @@ CREATE TABLE "OrderItem" (
 CREATE TABLE "OrderItemOption" (
     "id" TEXT NOT NULL,
     "orderItemId" TEXT NOT NULL,
-    "groupName" TEXT,
-    "optionName" TEXT NOT NULL,
+    "menuOptionId" TEXT NOT NULL,
     "priceDelta" DECIMAL(65,30) NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "optionNameSnapshot" TEXT,
+    "groupNameSnapshot" TEXT,
 
     CONSTRAINT "OrderItemOption_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Category_slug_key" ON "Category"("slug");
@@ -141,13 +123,10 @@ CREATE UNIQUE INDEX "Category_slug_key" ON "Category"("slug");
 ALTER TABLE "MenuItem" ADD CONSTRAINT "MenuItem_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "OptionTemplate" ADD CONSTRAINT "OptionTemplate_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "OptionGroupTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "MenuOptionGroup" ADD CONSTRAINT "MenuOptionGroup_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "MenuItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MenuOption" ADD CONSTRAINT "MenuOption_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "MenuOptionGroup"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "MenuOptions" ADD CONSTRAINT "MenuOptions_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "MenuOptionGroup"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -160,3 +139,6 @@ ALTER TABLE "OrderItem" ADD CONSTRAINT "OrderItem_menuItemId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "OrderItemOption" ADD CONSTRAINT "OrderItemOption_orderItemId_fkey" FOREIGN KEY ("orderItemId") REFERENCES "OrderItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "OrderItemOption" ADD CONSTRAINT "OrderItemOption_menuOptionId_fkey" FOREIGN KEY ("menuOptionId") REFERENCES "MenuOptions"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

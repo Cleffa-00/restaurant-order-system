@@ -10,10 +10,9 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
-  email     String   @unique
+  phone     String   @unique
   password  String
   name      String?
-  phone     String?
   role      Role     @default(CUSTOMER)
   orders    Order[]
   createdAt DateTime @default(now())
@@ -44,39 +43,24 @@ model MenuItem {
   updatedAt    DateTime @updatedAt
 }
 
-model OptionGroupTemplate {
-  id       String   @id @default(uuid())
-  name     String
-  required Boolean
-  options  OptionTemplate[]
-}
-
-model OptionTemplate {
-  id         String   @id @default(uuid())
-  name       String
-  priceDelta Decimal  @default(0)
-  group      OptionGroupTemplate @relation(fields: [groupId], references: [id])
-  groupId    String
-}
-
 model MenuOptionGroup {
   id         String   @id @default(uuid())
-  name       String
-  required   Boolean  @default(false) // true = 必选组（radio），false = 可选组（多选 + 数量）
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
   menuItemId String
-  templateId String?
-  deleted    Boolean  @default(false)
-  options    MenuOption[]
+  name       String   
+  required   Boolean        @default(false) // 是否为必选组
+  deleted    Boolean        @default(false)
+  options    MenuOptions[] // 拥有的选项  如 “加蛋” / （“不辣”, “中辣”, "特辣"）
 }
 
-model MenuOption {
+model MenuOptions {
   id         String   @id @default(uuid())
-  name       String
+  optionName String   
   priceDelta Decimal  @default(0)
   group      MenuOptionGroup @relation(fields: [groupId], references: [id])
   groupId    String
-  deleted    Boolean  @default(false)
+  deleted    Boolean   @default(false)
+  orderItemOption OrderItemOption[]
 }
 
 model Order {
@@ -95,28 +79,35 @@ model Order {
 }
 
 model OrderItem {
-  id               String   @id @default(uuid())
-  order            Order    @relation(fields: [orderId], references: [id])
-  orderId          String
-  menuItem         MenuItem @relation(fields: [menuItemId], references: [id])
-  menuItemId       String
-  menuItemName     String
-  menuItemImage    String?
-  menuItemCategory String?
-  quantity         Int
-  note             String?
-  options          OrderItemOption[]
-  unitPrice        Decimal
+  id                  String   @id @default(uuid())
+  order               Order    @relation(fields: [orderId], references: [id])
+  orderId             String
+  menuItem            MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId          String
+  nameSnapshot        String
+  imageUrlSnapshot    String?
+  categorySnapshot    String?
+  quantity            Int
+  note                String?
+  options             OrderItemOption[]
+  unitPrice           Decimal
+  finalPrice          Decimal     
 }
 
 model OrderItemOption {
-  id           String    @id @default(uuid())
-  orderItem    OrderItem @relation(fields: [orderItemId], references: [id])
-  orderItemId  String
-  groupName    String?
-  optionName   String
-  priceDelta   Decimal
-  quantity     Int       // 对于必选项固定为 1，可选项为 0~N
+  id                 String     @id @default(uuid())
+  orderItem          OrderItem  @relation(fields: [orderItemId], references: [id])
+  orderItemId        String
+
+  menuOption         MenuOptions @relation(fields: [menuOptionId], references: [id])
+  menuOptionId       String
+
+  priceDelta         Decimal    // 当前选项的价格增量
+  quantity           Int        // 数量：可选项为 0~N，必选项通常为 1
+
+  // ✅ 快照字段（用于记录下单时的菜单状态，非必需但推荐）
+  optionNameSnapshot String?    // 如“加蛋”
+  groupNameSnapshot  String?    // 如“加料”
 }
 
 enum OrderStatus {

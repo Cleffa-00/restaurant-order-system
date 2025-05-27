@@ -372,7 +372,7 @@ export default function CartClientPage() {
         />
 
         {/* Order Instructions with extra bottom spacing */}
-        <OrderNoteInput value={customerNote} onChange={setCustomerNote} />
+        {/* <OrderNoteInput value={customerNote} onChange={setCustomerNote} /> */}
       </div>
 
       <CartSummary

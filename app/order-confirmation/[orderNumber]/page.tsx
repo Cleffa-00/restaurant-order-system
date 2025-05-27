@@ -1,4 +1,3 @@
-// app/order-confirmation/[orderNumber]/page.tsx
 "use client"
 
 import { useState, useEffect } from "react"
@@ -6,7 +5,20 @@ import { useParams, useRouter } from "next/navigation"
 import { CartApiService } from "@/lib/api/cart"
 import { OrderWithDetails } from "@/types"
 import { formatCurrency } from "@/lib/utils/cart"
-import { CheckCircle, Clock, ChefHat, Package, Loader2 } from "lucide-react"
+import { 
+  CheckCircle, 
+  Clock, 
+  ChefHat, 
+  Package, 
+  Loader2, 
+  RefreshCw,
+  Phone,
+  User,
+  MessageSquare,
+  ArrowLeft,
+  Receipt,
+  MapPin
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function OrderConfirmationPage() {
@@ -17,64 +29,127 @@ export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<OrderWithDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   // 获取订单详情
+  const fetchOrder = async (showRefreshing = false) => {
+    try {
+      if (showRefreshing) setRefreshing(true)
+      else setLoading(true)
+      setError(null)
+      
+      const result = await CartApiService.trackOrderByNumber(orderNumber)
+      
+      if (result.success && result.data) {
+        setOrder(result.data)
+      } else {
+        setError(result.error?.message || "Order not found")
+      }
+    } catch (err) {
+      console.error('Error fetching order:', err)
+      setError(err instanceof Error ? err.message : "Failed to load order")
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
   useEffect(() => {
     if (!orderNumber) return
-
-    const fetchOrder = async () => {
-      try {
-        setLoading(true)
-        const result = await CartApiService.trackOrderByNumber(orderNumber)
-        
-        if (result.success && result.data) {
-          setOrder(result.data)
-        } else {
-          setError(result.error?.message || "Order not found")
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load order")
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchOrder()
   }, [orderNumber])
 
-  // 订单状态图标和文本
+  // 自动刷新订单状态（如果订单还在进行中）
+  useEffect(() => {
+    if (!order || ['COMPLETED', 'CANCELLED'].includes(order.status)) return
+
+    const interval = setInterval(() => {
+      fetchOrder(true)
+    }, 30000) // 每30秒刷新一次
+
+    return () => clearInterval(interval)
+  }, [order?.status])
+
+  // 订单状态配置
   const getStatusInfo = (status: string) => {
     switch (status) {
       case "PENDING":
         return {
-          icon: <Clock className="w-6 h-6 text-yellow-600" />,
+          icon: <Clock className="w-6 h-6 text-amber-600" />,
           text: "Order Received",
-          description: "We've received your order and are preparing it."
+          description: "We've received your order and are preparing it.",
+          color: "amber",
+          bgColor: "bg-amber-50",
+          borderColor: "border-amber-200"
         }
       case "PREPARING":
         return {
           icon: <ChefHat className="w-6 h-6 text-blue-600" />,
-          text: "Preparing",
-          description: "Your order is being prepared by our kitchen."
+          text: "Preparing Your Order",
+          description: "Our kitchen is carefully preparing your delicious meal.",
+          color: "blue",
+          bgColor: "bg-blue-50",
+          borderColor: "border-blue-200"
         }
       case "READY":
         return {
           icon: <Package className="w-6 h-6 text-green-600" />,
-          text: "Ready for Pickup",
-          description: "Your order is ready! Please come pick it up."
+          text: "Ready for Pickup!",
+          description: "Your order is ready! Please come pick it up at your convenience.",
+          color: "green",
+          bgColor: "bg-green-50",
+          borderColor: "border-green-200"
         }
       case "COMPLETED":
         return {
           icon: <CheckCircle className="w-6 h-6 text-green-600" />,
-          text: "Completed",
-          description: "Order completed. Thank you!"
+          text: "Order Completed",
+          description: "Thank you for your order! We hope you enjoyed your meal.",
+          color: "green",
+          bgColor: "bg-green-50",
+          borderColor: "border-green-200"
+        }
+      case "CANCELLED":
+        return {
+          icon: <Clock className="w-6 h-6 text-red-600" />,
+          text: "Order Cancelled",
+          description: "This order has been cancelled. If you have questions, please contact us.",
+          color: "red",
+          bgColor: "bg-red-50",
+          borderColor: "border-red-200"
         }
       default:
         return {
           icon: <Clock className="w-6 h-6 text-gray-600" />,
           text: "Processing",
-          description: "Processing your order..."
+          description: "Processing your order...",
+          color: "gray",
+          bgColor: "bg-gray-50",
+          borderColor: "border-gray-200"
         }
+    }
+  }
+
+  // 计算预计准备时间
+  const getEstimatedTime = (status: string, createdAt: string) => {
+    const orderTime = new Date(createdAt)
+    const now = new Date()
+    const minutesPassed = Math.floor((now.getTime() - orderTime.getTime()) / (1000 * 60))
+
+    switch (status) {
+      case "PENDING":
+        return "5-10 minutes until preparation starts"
+      case "PREPARING":
+        const remainingTime = Math.max(0, 20 - minutesPassed)
+        return remainingTime > 0 ? `About ${remainingTime} minutes remaining` : "Ready soon"
+      case "READY":
+        return "Available for pickup now"
+      case "COMPLETED":
+        return "Order completed"
+      case "CANCELLED":
+        return "Order cancelled"
+      default:
+        return ""
     }
   }
 
@@ -93,62 +168,127 @@ export default function OrderConfirmationPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
-          <div className="text-red-500 text-xl mb-4">⚠️</div>
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Receipt className="w-8 h-8 text-red-600" />
+          </div>
           <h1 className="text-xl font-semibold text-gray-900 mb-2">Order Not Found</h1>
           <p className="text-gray-600 mb-6">{error || "The order you're looking for doesn't exist."}</p>
-          <Button onClick={() => router.push("/menu")} className="bg-gray-900 hover:bg-gray-800">
-            Back to Menu
-          </Button>
+          <div className="space-y-3">
+            <Button 
+              onClick={() => fetchOrder()} 
+              variant="outline" 
+              className="w-full"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+            <Button 
+              onClick={() => router.push("/menu")} 
+              className="w-full bg-gray-900 hover:bg-gray-800"
+            >
+              Back to Menu
+            </Button>
+          </div>
         </div>
       </div>
     )
   }
 
   const statusInfo = getStatusInfo(order.status)
+  const estimatedTime = getEstimatedTime(order.status, String(order.createdAt))
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 头部 */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-2xl mx-auto px-4 py-6">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+      {/* 头部导航 */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>Back</span>
+            </button>
+            <div className="text-center">
+              <h1 className="text-lg font-semibold text-gray-900">Order Details</h1>
+              <p className="text-sm text-gray-500">#{order.orderNumber}</p>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Confirmed!</h1>
-            <p className="text-gray-600">Order #{order.orderNumber}</p>
+            <button
+              onClick={() => fetchOrder(true)}
+              disabled={refreshing}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 成功提示横幅 */}
+      <div className="bg-green-50 border-b border-green-200">
+        <div className="max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-green-900">Order Confirmed!</h2>
+              <p className="text-sm text-green-700">Your order has been successfully placed and is being processed.</p>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* 订单状态 */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-4">
-            {statusInfo.icon}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">{statusInfo.text}</h3>
-              <p className="text-gray-600">{statusInfo.description}</p>
+        {/* 订单状态卡片 */}
+        <div className={`${statusInfo.bgColor} ${statusInfo.borderColor} border rounded-lg p-6`}>
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              {statusInfo.icon}
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">{statusInfo.text}</h3>
+              <p className="text-gray-600 mb-2">{statusInfo.description}</p>
+              {estimatedTime && (
+                <p className="text-sm font-medium text-gray-700 bg-white/50 rounded-full px-3 py-1 inline-block">
+                  <Clock className="w-4 h-4 inline mr-1" />
+                  {estimatedTime}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* 客户信息 */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
-          <div className="space-y-2">
-            <div>
-              <span className="text-gray-600">Name: </span>
-              <span className="font-medium">{order.name}</span>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Customer Information
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Name</p>
+                <p className="font-medium text-gray-900">{order.name}</p>
+              </div>
             </div>
-            <div>
-              <span className="text-gray-600">Phone: </span>
-              <span className="font-medium">{order.phone}</span>
+            <div className="flex items-center gap-3">
+              <Phone className="w-4 h-4 text-gray-400" />
+              <div>
+                <p className="text-sm text-gray-500">Phone</p>
+                <p className="font-medium text-gray-900">{order.phone}</p>
+              </div>
             </div>
             {order.customerNote && (
-              <div>
-                <span className="text-gray-600">Notes: </span>
-                <span className="font-medium">{order.customerNote}</span>
+              <div className="sm:col-span-2 flex items-start gap-3">
+                <MessageSquare className="w-4 h-4 text-gray-400 mt-1" />
+                <div>
+                  <p className="text-sm text-gray-500">Order Notes</p>
+                  <p className="font-medium text-gray-900">{order.customerNote}</p>
+                </div>
               </div>
             )}
           </div>
@@ -156,71 +296,145 @@ export default function OrderConfirmationPage() {
 
         {/* 订单详情 */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Receipt className="w-5 h-5" />
+            Order Items
+          </h3>
           <div className="space-y-4">
             {order.items.map((item) => (
-              <div key={item.id} className="flex justify-between items-start">
+              <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-100 last:border-b-0 last:pb-0">
+                {/* 商品图片 */}
+                {item.imageUrlSnapshot && (
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                    <img 
+                      src={item.imageUrlSnapshot} 
+                      alt={item.nameSnapshot}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                
+                {/* 商品信息 */}
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{item.nameSnapshot}</h4>
-                  <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                  {item.note && (
-                    <p className="text-sm text-gray-500 italic">Note: {item.note}</p>
-                  )}
+                  <h4 className="font-medium text-gray-900 mb-1">{item.nameSnapshot}</h4>
+                  <p className="text-sm text-gray-600 mb-2">Quantity: {item.quantity}</p>
+                  
+                  {/* 商品选项 */}
                   {item.options && item.options.length > 0 && (
-                    <div className="mt-1">
+                    <div className="space-y-1 mb-2">
                       {item.options.map((option) => (
-                        <div key={option.id} className="text-sm text-gray-600">
+                        <div key={option.id} className="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 inline-block mr-1">
                           {option.groupNameSnapshot}: {option.optionNameSnapshot}
-                          {option.quantity > 1 && ` (${option.quantity})`}
-                          {option.priceDelta > 0 && ` +${formatCurrency(option.priceDelta * option.quantity)}`}
+                          {option.quantity > 1 && ` (×${option.quantity})`}
+                          {Number(option.priceDelta) > 0 && ` +${formatCurrency(Number(option.priceDelta) * option.quantity)}`}
                         </div>
                       ))}
                     </div>
                   )}
+                  
+                  {/* 特殊说明 */}
+                  {item.note && (
+                    <p className="text-xs text-gray-500 italic bg-blue-50 rounded px-2 py-1 inline-block">
+                      Note: {item.note}
+                    </p>
+                  )}
                 </div>
-                <div className="text-right">
-                  <span className="font-medium">{formatCurrency(item.finalPrice)}</span>
+                
+                {/* 价格 */}
+                <div className="text-right flex-shrink-0">
+                  <span className="font-semibold text-gray-900">{formatCurrency(Number(item.finalPrice))}</span>
                 </div>
               </div>
             ))}
           </div>
 
           {/* 价格明细 */}
-          <div className="mt-6 pt-4 border-t border-gray-200 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Subtotal</span>
-              <span>{formatCurrency(order.subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Tax</span>
-              <span>{formatCurrency(order.taxAmount)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Service Fee</span>
-              <span>{formatCurrency(order.serviceFee)}</span>
-            </div>
-            <div className="flex justify-between text-lg font-semibold pt-2 border-t border-gray-200">
-              <span>Total</span>
-              <span>{formatCurrency(order.total)}</span>
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Subtotal</span>
+                <span>{formatCurrency(Number(order.subtotal))}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Tax (8.75%)</span>
+                <span>{formatCurrency(Number(order.taxAmount))}</span>
+              </div>
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Service Fee</span>
+                <span>{formatCurrency(Number(order.serviceFee))}</span>
+              </div>
+              <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t border-gray-200">
+                <span>Total</span>
+                <span>{formatCurrency(Number(order.total))}</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <Button 
             variant="outline" 
             onClick={() => router.push("/menu")}
             className="flex-1"
           >
-            Order More
+            Order More Food
           </Button>
           <Button 
-            onClick={() => router.push(`/track-order/${order.orderNumber}`)}
-            className="flex-1 bg-gray-900 hover:bg-gray-800"
+            onClick={() => {
+              // 分享订单链接
+              if (navigator.share) {
+                navigator.share({
+                  title: `Order #${order.orderNumber}`,
+                  text: `Track my order: ${order.orderNumber}`,
+                  url: window.location.href
+                })
+              } else {
+                // 复制链接到剪贴板
+                navigator.clipboard.writeText(window.location.href)
+                alert('Order link copied to clipboard!')
+              }
+            }}
+            variant="outline"
+            className="flex-1"
           >
-            Track Order
+            Share Order
           </Button>
+        </div>
+
+        {/* 帮助信息 */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="font-medium text-blue-900 mb-2">Need Help?</h4>
+          <p className="text-sm text-blue-700 mb-3">
+            If you have any questions about your order or need to make changes, please contact us immediately.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <a 
+              href={`tel:${order.phone}`}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Phone className="w-4 h-4" />
+              Call Restaurant
+            </a>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                // 这里可以添加客服聊天功能
+                alert('Customer service feature coming soon!')
+              }}
+              className="border-blue-300 text-blue-700 hover:bg-blue-100"
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Live Chat
+            </Button>
+          </div>
+        </div>
+
+        {/* 订单时间信息 */}
+        <div className="text-center text-sm text-gray-500 space-y-1">
+          <p>Order placed on {new Date(String(order.createdAt)).toLocaleString()}</p>
+          <p className="text-xs">Order #{order.orderNumber}</p>
         </div>
       </div>
     </div>

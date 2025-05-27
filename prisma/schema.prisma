@@ -1,0 +1,133 @@
+// 生成 Prisma 客户端代码
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(USER)
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  order     Int
+  visible   Boolean    @default(true)
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  price        Decimal
+  imageUrl     String?
+  available    Boolean  @default(true)
+  category     Category? @relation(fields: [categoryId], references: [id])
+  categoryId   String?
+  deleted      Boolean  @default(false)
+  optionGroups MenuOptionGroup[]
+  orderItems   OrderItem[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model MenuOptionGroup {
+  id         String   @id @default(uuid())
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId String
+  name       String   
+  required   Boolean        @default(false) // 是否为必选组
+  deleted    Boolean        @default(false)
+  options    MenuOptions[] // 拥有的选项  如 “加蛋” / （“不辣”, “中辣”, "特辣"）
+}
+
+model MenuOptions {
+  id         String   @id @default(uuid())
+  optionName String   
+  priceDelta Decimal  @default(0)
+  group      MenuOptionGroup @relation(fields: [groupId], references: [id])
+  groupId    String
+  deleted    Boolean   @default(false)
+  orderItemOption OrderItemOption[]
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  orderNumber   String @unique // e.g. "R240524-0031"
+  phone         String
+  name          String
+  status        OrderStatus   @default(PENDING)
+  subtotal      Decimal         // 所有 item 小计，不含任何额外费用
+  taxAmount     Decimal         // 税费（如 8.75% 计算得出）
+  serviceFee    Decimal         // min(5%, 0.50)
+  total         Decimal         // 总价（subtotal + taxAmount + serviceFee
+  paymentStatus PaymentStatus @default(UNPAID)
+  orderSource   String?
+  customerNote  String?
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+  createdAt     DateTime      @default(now())
+}
+
+model OrderItem {
+  id                  String   @id @default(uuid())
+  order               Order    @relation(fields: [orderId], references: [id])
+  orderId             String
+  menuItem            MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId          String
+  nameSnapshot        String
+  imageUrlSnapshot    String?
+  categorySnapshot    String?
+  quantity            Int
+  note                String?
+  options             OrderItemOption[]
+  unitPrice           Decimal
+  finalPrice          Decimal     
+}
+
+model OrderItemOption {
+  id                 String     @id @default(uuid())
+  orderItem          OrderItem  @relation(fields: [orderItemId], references: [id])
+  orderItemId        String
+
+  menuOption         MenuOptions @relation(fields: [menuOptionId], references: [id])
+  menuOptionId       String
+
+  priceDelta         Decimal    // 当前选项的价格增量
+  quantity           Int        // 数量：可选项为 0~N，必选项通常为 1
+
+  // ✅ 快照字段（用于记录下单时的菜单状态，非必需但推荐）
+  optionNameSnapshot String?    // 如“加蛋”
+  groupNameSnapshot  String?    // 如“加料”
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum Role {
+  USER
+  ADMIN
+}

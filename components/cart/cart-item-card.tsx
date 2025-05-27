@@ -6,6 +6,7 @@ import { Plus, Minus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils"
 import { useCart } from "@/contexts/cart-context"
+import { useToast } from "@/hooks/use-toast"
 import { CartItem, CartItemOption } from "@/lib/utils/cart"
 
 
@@ -37,14 +38,34 @@ export function CartItemCard({
   getSwipeTransform,
 }: CartItemCardProps) {
   const { updateQuantity, removeItem } = useCart()
+  const { toast } = useToast()
 
   const handleQuantityChange = (delta: number) => {
     const newQuantity = item.quantity + delta
     if (newQuantity <= 0) {
+      toast({
+        type: "error",
+        message: `${item.name} removed from cart`,
+        duration: 3000,
+      })
       removeItem(item.id)
     } else {
       updateQuantity(item.id, newQuantity)
+      toast({
+        type: "info",
+        message: `Updated ${item.name} quantity to ${newQuantity}`,
+        duration: 2000,
+      })
     }
+  }
+
+  const handleRemove = (itemId: string) => {
+    toast({
+      type: "error",
+      message: `${item.name} removed from cart`,
+      duration: 3000,
+    })
+    onRemove(itemId)
   }
 
   // Calculate item total price including options
@@ -78,7 +99,7 @@ export function CartItemCard({
             size="icon"
             onClick={(e) => {
               e.stopPropagation()
-              onRemove(item.id)
+              handleRemove(item.id)
             }}
             className="text-white hover:bg-red-600/20 h-12 w-12 rounded-full"
           >
@@ -119,7 +140,7 @@ export function CartItemCard({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onRemove(item.id)}
+                onClick={() => handleRemove(item.id)}
                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 flex-shrink-0 h-8 w-8 rounded-lg"
               >
                 <Trash2 className="h-4 w-4" />

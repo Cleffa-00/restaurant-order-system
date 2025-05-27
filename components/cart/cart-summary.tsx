@@ -1,7 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils/cart"
+import { useToast } from "@/hooks/use-toast"
 import { ShoppingCart, Loader2 } from "lucide-react"
 
 interface CartSummaryProps {
@@ -9,7 +11,7 @@ interface CartSummaryProps {
   itemCount: number
   isVisible: boolean
   isAnimatingOut: boolean
-  onCheckout: () => void
+  onCheckout: () => void | Promise<void>
   isSubmitting?: boolean
 }
 
@@ -19,10 +21,46 @@ export function CartSummary({
   isVisible, 
   isAnimatingOut, 
   onCheckout,
-  isSubmitting = false 
+  isSubmitting: externalIsSubmitting = false 
 }: CartSummaryProps) {
+  const [internalIsSubmitting, setInternalIsSubmitting] = useState(false)
+  const { toast } = useToast()
+  
+  const isSubmitting = externalIsSubmitting || internalIsSubmitting
+
   // Completely remove from DOM when not visible and not animating
   if (!isVisible && !isAnimatingOut) return null
+
+  const handleCheckout = async () => {
+    if (itemCount === 0) return
+
+    try {
+      setInternalIsSubmitting(true)
+      
+      toast({
+        type: "info",
+        message: "Processing your order...",
+        duration: 0, // Keep visible until replaced
+      })
+      
+      await onCheckout()
+      
+      toast({
+        type: "success",
+        message: "Order placed successfully!",
+        duration: 5000,
+      })
+    } catch (error) {
+      console.error('Checkout error:', error)
+      toast({
+        type: "error",
+        message: "Order failed. Please try again.",
+        duration: 5000,
+      })
+    } finally {
+      setInternalIsSubmitting(false)
+    }
+  }
 
   return (
     <div
@@ -57,7 +95,7 @@ export function CartSummary({
 
         {/* Checkout button */}
         <Button
-          onClick={onCheckout}
+          onClick={handleCheckout}
           disabled={itemCount === 0 || isSubmitting}
           className="w-full py-3 text-base font-semibold bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >

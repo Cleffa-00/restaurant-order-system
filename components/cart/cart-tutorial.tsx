@@ -1,11 +1,31 @@
 "use client"
 
+import { useEffect } from "react"
+import { useToast } from "@/hooks/use-toast"
+
 interface CartTutorialProps {
   isVisible: boolean
   tutorialStep: "waiting" | "animating" | "complete"
 }
 
 export function CartTutorial({ isVisible, tutorialStep }: CartTutorialProps) {
+  const { toast } = useToast()
+
+  useEffect(() => {
+    if (tutorialStep === "complete") {
+      // Delay the toast slightly to allow the tutorial animation to finish
+      const timeoutId = setTimeout(() => {
+        toast({
+          type: "success",
+          message: "Great! You've learned how to delete items",
+          duration: 3000,
+        })
+      }, 300)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [tutorialStep, toast])
+
   if (!isVisible) return null
 
   return (

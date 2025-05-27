@@ -1,12 +1,24 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 
 interface EmptyCartNoticeProps {
   onBackToMenu: () => void
 }
 
 export function EmptyCartNotice({ onBackToMenu }: EmptyCartNoticeProps) {
+  const { toast } = useToast()
+
+  const handleBackToMenu = () => {
+    toast({
+      type: "info",
+      message: "Redirecting to menu...",
+      duration: 1500,
+    })
+    onBackToMenu()
+  }
+
   return (
     <div className="flex flex-col items-center justify-center px-4 py-16">
       <div className="text-center">
@@ -22,7 +34,7 @@ export function EmptyCartNotice({ onBackToMenu }: EmptyCartNoticeProps) {
         </div>
         <h2 className="text-xl font-medium text-gray-900 mb-2">Your cart is empty</h2>
         <p className="text-gray-600 mb-6">Add some delicious items from our menu</p>
-        <Button onClick={onBackToMenu} className="bg-gray-900 hover:bg-gray-800 text-white">
+        <Button onClick={handleBackToMenu} className="bg-gray-900 hover:bg-gray-800 text-white">
           Browse Menu
         </Button>
       </div>

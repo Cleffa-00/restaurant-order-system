@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
 import { Category, MenuItemWithDetails } from "@/types"
+import { MenuHeaderRef } from "./menu-header" // ✅ 导入 ref 类型
 
 // Loading 组件
 function MenuLoading() {
@@ -97,7 +98,7 @@ export function MenuLayout() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   
-  const headerRef = useRef<any>(null)
+  const headerRef = useRef<MenuHeaderRef>(null)
 
   // 加载菜单数据
   const loadMenuData = async () => {

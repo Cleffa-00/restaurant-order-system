@@ -10,30 +10,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useCart } from "@/contexts/cart-context"
 import { cn } from "@/lib/utils"
-
-
-interface Option {
-  id: string
-  optionName: string
-  priceDelta: number
-}
-
-interface OptionGroup {
-  id: string
-  name: string
-  required: boolean
-  options: Option[]
-}
-
-interface MenuItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  imageUrl: string
-  available: boolean
-  optionGroups: OptionGroup[]
-}
+// ✅ 使用统一的类型定义
+import { MenuItemWithDetails } from "@/types"
+import { QuantitySelector } from "@/components/ui/quantity-selector"
 
 interface SelectedOption {
   optionId: string
@@ -41,7 +20,7 @@ interface SelectedOption {
 }
 
 interface MenuItemModalProps {
-  item: MenuItem | null
+  item: MenuItemWithDetails | null // ✅ 使用正确的类型
   isOpen: boolean
   onClose: () => void
   onCartAnimation?: (element: HTMLElement, isDecrease?: boolean) => void
@@ -59,8 +38,8 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
     if (item) {
       // Initialize selected options
       const initialOptions: Record<string, SelectedOption[]> = {}
-      item.optionGroups.forEach((group) => {
-        if (group.required && group.options.length > 0) {
+      item.optionGroups?.forEach((group) => {
+        if (group.required && group.options && group.options.length > 0) {
           // Pre-select first option for required groups
           initialOptions[group.id] = [{ optionId: group.options[0].id, quantity: 1 }]
         } else {
@@ -77,17 +56,17 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
   }, [item])
 
   // Calculate total price based on selected options (for single item)
-  const calculateTotalPrice = (menuItem: MenuItem, options: Record<string, SelectedOption[]>) => {
+  const calculateTotalPrice = (menuItem: MenuItemWithDetails, options: Record<string, SelectedOption[]>) => {
     if (!menuItem) return 0
 
     let price = menuItem.price
 
     // Add price deltas from selected options
     Object.entries(options).forEach(([groupId, selectedOpts]) => {
-      const group = menuItem.optionGroups.find((g) => g.id === groupId)
-      if (group) {
+      const group = menuItem.optionGroups?.find((g) => g.id === groupId)
+      if (group && group.options) {
         selectedOpts.forEach((selectedOpt) => {
-          const option = group.options.find((o) => o.id === selectedOpt.optionId)
+          const option = group.options?.find((o) => o.id === selectedOpt.optionId)
           if (option) {
             price += option.priceDelta * selectedOpt.quantity
           }
@@ -218,12 +197,12 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
       // Convert selected options to cart format with proper naming
       const cartOptions = Object.entries(selectedOptions)
         .flatMap(([groupId, groupOptions]) => {
-          const group = item.optionGroups.find((g) => g.id === groupId)
-          if (!group) return []
+          const group = item.optionGroups?.find((g) => g.id === groupId)
+          if (!group || !group.options) return []
 
           return groupOptions
             .map((selectedOpt) => {
-              const option = group.options.find((o) => o.id === selectedOpt.optionId)
+              const option = group.options?.find((o) => o.id === selectedOpt.optionId)
               if (!option) return null
 
               return {
@@ -243,7 +222,7 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
         menuItemId: item.id,
         name: item.name,
         price: item.price,
-        imageUrl: item.imageUrl,
+        imageUrl: item.imageUrl || "",
         quantity: 1,
         options: cartOptions,
         specialInstructions,
@@ -296,11 +275,11 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
         <div className="flex-1 overflow-y-auto p-4">
           {/* Item details */}
           <h2 className="text-xl font-bold text-gray-900">{item.name}</h2>
-          <p className="text-gray-600 mt-1 mb-3">{item.description}</p>
+          <p className="text-gray-600 mt-1 mb-3">{item.description || ""}</p>
           <p className="text-lg font-semibold text-gray-900 mb-4">{formatCurrency(item.price)}</p>
 
           {/* Option groups */}
-          {item.optionGroups.length > 0 ? (
+          {item.optionGroups && item.optionGroups.length > 0 ? (
             <div className="space-y-6 mb-6">
               {item.optionGroups.map((group) => (
                 <div key={group.id} className="border-t pt-4">
@@ -320,7 +299,7 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
                       onValueChange={(value) => handleRadioChange(group.id, value)}
                       className="space-y-2"
                     >
-                      {group.options.map((option) => (
+                      {group.options?.map((option) => (
                         <div key={option.id} className="flex items-center space-x-2">
                           <RadioGroupItem value={option.id} id={option.id} />
                           <Label htmlFor={option.id} className="flex-1 cursor-pointer text-gray-900">
@@ -332,12 +311,12 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
                             </span>
                           )}
                         </div>
-                      ))}
+                      )) || []}
                     </RadioGroup>
                   ) : (
                     // Quantity controls for optional groups
                     <div className="space-y-3">
-                      {group.options.map((option) => {
+                      {group.options?.map((option) => {
                         const optionQuantity = getOptionQuantity(group.id, option.id)
                         return (
                           <div key={option.id} className="flex items-center justify-between">
@@ -349,33 +328,16 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleQuantityChange(group.id, option.id, -1)}
-                                disabled={optionQuantity === 0}
-                              >
-                                <span className="text-lg">−</span>
-                                <span className="sr-only">Decrease quantity</span>
-                              </Button>
-                              <span className="w-8 text-center font-medium text-gray-900">{optionQuantity}</span>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleQuantityChange(group.id, option.id, 1)}
-                              >
-                                <span className="text-lg">+</span>
-                                <span className="sr-only">Increase quantity</span>
-                              </Button>
-                            </div>
+                            <QuantitySelector
+                              quantity={optionQuantity}
+                              onIncrease={() => handleQuantityChange(group.id, option.id, 1)}
+                              onDecrease={() => handleQuantityChange(group.id, option.id, -1)}
+                              min={0}
+                              variant="inline"
+                            />
                           </div>
                         )
-                      })}
+                      }) || []}
                     </div>
                   )}
                 </div>
@@ -385,8 +347,7 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
             <div className="border-t my-4"></div>
           )}
 
-          {/* Special instructions */}
-          {/* 
+          {/* Special instructions - 暂时注释掉
           <div className="mb-6">
             <Label htmlFor="special-instructions" className="block mb-2 text-base font-semibold text-gray-900">
               Special Instructions
@@ -405,15 +366,15 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
         {/* Footer with Add to Cart button */}
         <div className="border-t p-4 bg-white sticky bottom-0">
           <Button
-  onClick={handleAddToCart}
-  className={cn(
-    "w-full bg-gray-900 text-white font-medium h-11 sm:h-12 md:h-12 px-4 sm:px-5 md:px-6 text-sm sm:text-base md:text-lg rounded-full",
-    "hover:bg-gray-800 active:bg-gray-950 transition-all duration-200",
-    "shadow-sm hover:shadow-md focus:ring-2 focus:ring-gray-900/20 focus:ring-offset-2"
-  )}
->
-  Add to Cart – {formatCurrency(totalPrice)}
-</Button>
+            onClick={handleAddToCart}
+            className={cn(
+              "w-full bg-gray-900 text-white font-medium h-11 sm:h-12 md:h-12 px-4 sm:px-5 md:px-6 text-sm sm:text-base md:text-lg rounded-full",
+              "hover:bg-gray-800 active:bg-gray-950 transition-all duration-200",
+              "shadow-sm hover:shadow-md focus:ring-2 focus:ring-gray-900/20 focus:ring-offset-2"
+            )}
+          >
+            Add to Cart – {formatCurrency(totalPrice)}
+          </Button>
         </div>
       </div>
     </div>

@@ -182,17 +182,7 @@ export function MenuCard({ item, onClick, onCartAnimation }: MenuCardProps) {
   const handleCardClick = () => {
     if (!item.available) return
 
-    if (totalQuantity === 0) {
-      // 没有数量时：有选项打开modal，无选项直接加购物车
-      if (hasOptions) {
-        onClick()
-      } else {
-        addToCartDirect()
-      }
-    } else {
-      // 有数量时：总是打开modal
-      onClick()
-    }
+    onClick()
   }
 
   return (

@@ -10,7 +10,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { useCart } from "@/contexts/cart-context"
 import { cn } from "@/lib/utils"
-// ✅ 使用统一的类型定义
 import { MenuItemWithDetails } from "@/types"
 import { QuantitySelector } from "@/components/ui/quantity-selector"
 
@@ -20,7 +19,7 @@ interface SelectedOption {
 }
 
 interface MenuItemModalProps {
-  item: MenuItemWithDetails | null // ✅ 使用正确的类型
+  item: MenuItemWithDetails | null
   isOpen: boolean
   onClose: () => void
   onCartAnimation?: (element: HTMLElement, isDecrease?: boolean) => void
@@ -245,23 +244,23 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
   if (!isOpen || !item) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Close button */}
+      {/* Modal - ✅ 响应式容器尺寸 */}
+      <div className="relative bg-white rounded-lg shadow-lg max-w-sm sm:max-w-md md:max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Close button - ✅ 响应式按钮 */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white text-gray-700"
+          className="absolute top-2 right-2 z-10 p-1.5 sm:p-2 rounded-full bg-white/80 hover:bg-white text-gray-700 transition-colors"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="sr-only">Close</span>
         </button>
 
-        {/* Image */}
-        <div className="relative h-48 bg-gray-100">
+        {/* Image - ✅ 响应式高度 */}
+        <div className="relative h-40 sm:h-48 md:h-56 bg-gray-100">
           <Image
             ref={imageRef}
             src={item.imageUrl || "/placeholder.svg?height=300&width=400&text=" + encodeURIComponent(item.name)}
@@ -271,19 +270,19 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
           />
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {/* Item details */}
-          <h2 className="text-xl font-bold text-gray-900">{item.name}</h2>
-          <p className="text-gray-600 mt-1 mb-3">{item.description || ""}</p>
-          <p className="text-lg font-semibold text-gray-900 mb-4">{formatCurrency(item.price)}</p>
+        {/* Content - ✅ 响应式内边距 */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+          {/* Item details - ✅ 响应式文字尺寸 */}
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">{item.name}</h2>
+          <p className="text-gray-600 mt-1 mb-3 text-sm sm:text-base">{item.description || ""}</p>
+          <p className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 mb-4">{formatCurrency(item.price)}</p>
 
           {/* Option groups */}
           {item.optionGroups && item.optionGroups.length > 0 ? (
-            <div className="space-y-6 mb-6">
+            <div className="space-y-4 sm:space-y-6 mb-6">
               {item.optionGroups.map((group) => (
-                <div key={group.id} className="border-t pt-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                <div key={group.id} className="border-t pt-3 sm:pt-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3 flex items-center">
                     {group.name}
                     {group.required && (
                       <span className="ml-2 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md font-medium">
@@ -300,13 +299,13 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
                       className="space-y-2"
                     >
                       {group.options?.map((option) => (
-                        <div key={option.id} className="flex items-center space-x-2">
+                        <div key={option.id} className="flex items-center space-x-2 sm:space-x-3">
                           <RadioGroupItem value={option.id} id={option.id} />
-                          <Label htmlFor={option.id} className="flex-1 cursor-pointer text-gray-900">
+                          <Label htmlFor={option.id} className="flex-1 cursor-pointer text-gray-900 text-sm sm:text-base">
                             {option.optionName}
                           </Label>
                           {option.priceDelta > 0 && (
-                            <span className="text-base font-medium text-gray-900">
+                            <span className="text-sm sm:text-base font-medium text-gray-900">
                               +{formatCurrency(option.priceDelta)}
                             </span>
                           )}
@@ -314,20 +313,21 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
                       )) || []}
                     </RadioGroup>
                   ) : (
-                    // Quantity controls for optional groups
-                    <div className="space-y-3">
+                    // Quantity controls for optional groups - ✅ 使用 QuantitySelector
+                    <div className="space-y-2 sm:space-y-3">
                       {group.options?.map((option) => {
                         const optionQuantity = getOptionQuantity(group.id, option.id)
                         return (
-                          <div key={option.id} className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <span className="text-gray-900">{option.optionName}</span>
+                          <div key={option.id} className="flex items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-gray-900 text-sm sm:text-base">{option.optionName}</span>
                               {option.priceDelta > 0 && (
-                                <span className="ml-2 text-base font-medium text-gray-900">
+                                <span className="ml-2 text-sm sm:text-base font-medium text-gray-900">
                                   +{formatCurrency(option.priceDelta)}
                                 </span>
                               )}
                             </div>
+                            {/* ✅ 使用 QuantitySelector 替代原来的按钮 */}
                             <QuantitySelector
                               quantity={optionQuantity}
                               onIncrease={() => handleQuantityChange(group.id, option.id, 1)}
@@ -349,7 +349,7 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
 
           {/* Special instructions - 暂时注释掉
           <div className="mb-6">
-            <Label htmlFor="special-instructions" className="block mb-2 text-base font-semibold text-gray-900">
+            <Label htmlFor="special-instructions" className="block mb-2 text-sm sm:text-base font-semibold text-gray-900">
               Special Instructions
             </Label>
             <Textarea
@@ -357,19 +357,20 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
               placeholder="Any special requests or allergies?"
               value={specialInstructions}
               onChange={(e) => setSpecialInstructions(e.target.value)}
-              className="w-full text-gray-900"
+              className="w-full text-gray-900 text-sm sm:text-base"
             />
           </div>
           */}
         </div>
 
-        {/* Footer with Add to Cart button */}
-        <div className="border-t p-4 bg-white sticky bottom-0">
+        {/* Footer with Add to Cart button - ✅ 响应式按钮 */}
+        <div className="border-t p-3 sm:p-4 md:p-6 bg-white">
           <Button
             onClick={handleAddToCart}
             className={cn(
-              "w-full bg-gray-900 text-white font-medium h-11 sm:h-12 md:h-12 px-4 sm:px-5 md:px-6 text-sm sm:text-base md:text-lg rounded-full",
-              "hover:bg-gray-800 active:bg-gray-950 transition-all duration-200",
+              "w-full bg-gray-900 text-white font-medium rounded-full transition-all duration-200",
+              "h-10 sm:h-11 md:h-12 px-4 sm:px-5 md:px-6 text-sm sm:text-base md:text-lg",
+              "hover:bg-gray-800 active:bg-gray-950",
               "shadow-sm hover:shadow-md focus:ring-2 focus:ring-gray-900/20 focus:ring-offset-2"
             )}
           >

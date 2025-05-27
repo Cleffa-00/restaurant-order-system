@@ -6,25 +6,8 @@ import { Plus, Minus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/utils"
 import { useCart } from "@/contexts/cart-context"
+import { CartItem, CartItemOption } from "@/lib/utils/cart"
 
-interface CartOption {
-  optionId: string
-  optionName: string
-  groupName: string
-  priceDelta: number
-  quantity: number
-}
-
-interface CartItem {
-  id: string
-  menuItemId: string
-  name: string
-  price: number
-  imageUrl: string
-  quantity: number
-  options: CartOption[]
-  specialInstructions: string
-}
 
 interface CartItemCardProps {
   item: CartItem
@@ -78,7 +61,7 @@ export function CartItemCard({
       groups[groupName].push(option)
       return groups
     },
-    {} as Record<string, CartOption[]>,
+    {} as Record<string, CartItemOption[]>,
   )
 
   return (

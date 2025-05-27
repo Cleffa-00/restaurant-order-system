@@ -1,8 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { formatCurrency } from "@/lib/utils"
-import { ShoppingCart } from "lucide-react"
+import { formatCurrency } from "@/lib/utils/cart"
+import { ShoppingCart, Loader2 } from "lucide-react"
 
 interface CartSummaryProps {
   totalPrice: number
@@ -10,9 +10,17 @@ interface CartSummaryProps {
   isVisible: boolean
   isAnimatingOut: boolean
   onCheckout: () => void
+  isSubmitting?: boolean
 }
 
-export function CartSummary({ totalPrice, itemCount, isVisible, isAnimatingOut, onCheckout }: CartSummaryProps) {
+export function CartSummary({ 
+  totalPrice, 
+  itemCount, 
+  isVisible, 
+  isAnimatingOut, 
+  onCheckout,
+  isSubmitting = false 
+}: CartSummaryProps) {
   // Completely remove from DOM when not visible and not animating
   if (!isVisible && !isAnimatingOut) return null
 
@@ -50,10 +58,17 @@ export function CartSummary({ totalPrice, itemCount, isVisible, isAnimatingOut, 
         {/* Checkout button */}
         <Button
           onClick={onCheckout}
-          className="w-full py-3 text-base font-semibold bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors"
-          disabled={itemCount === 0}
+          disabled={itemCount === 0 || isSubmitting}
+          className="w-full py-3 text-base font-semibold bg-gray-900 hover:bg-gray-800 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Proceed to Checkout
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Proceed to Checkout"
+          )}
         </Button>
       </div>
     </div>

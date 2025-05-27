@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { MenuLayout } from "@/components/menu/menu-layout"
-import { getMenuDataServer } from "@/lib/menu-api"
+import { getMenuDataServer } from "@/lib/api/menu"
 import { Suspense } from "react"
 
 export const metadata: Metadata = {

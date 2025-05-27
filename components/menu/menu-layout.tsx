@@ -6,12 +6,13 @@ import { MenuCategoryTabs } from "./menu-category-tabs"
 import { MenuGrid } from "./menu-grid"
 import { MenuHeader } from "./menu-header"
 import { MenuItemModal } from "./menu-item-modal"
-import { fetchMenuData, transformMenuData } from "@/lib/menu-api"
+import { fetchMenuData, fetchMenuDataWithRetry, transformMenuData } from "@/lib/api/menu"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
 import { Category, MenuItemWithDetails } from "@/types"
-import { MenuHeaderRef } from "./menu-header" // ✅ 导入 ref 类型
+import { MenuHeaderRef } from "./menu-header"
+import { AlertCircle, RefreshCw, RotateCcw, Loader2 } from "lucide-react"
 
 // Loading 组件
 function MenuLoading() {
@@ -62,20 +63,103 @@ function MenuLoading() {
   )
 }
 
-// Error 组件
-function MenuError({ error, onRetry }: { error: string; onRetry: () => void }) {
+// 改进的错误组件
+function MenuError({ 
+  error, 
+  onRetry, 
+  onRetryWithBackoff, 
+  isLoading 
+}: { 
+  error: string
+  onRetry: () => void
+  onRetryWithBackoff?: () => void
+  isLoading: boolean
+}) {
+  const isServerError = error.includes('Server is temporarily unavailable') || error.includes('500')
+  const isNetworkError = error.includes('connect') || error.includes('network') || error.includes('internet')
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center p-8">
-        <div className="text-red-500 text-6xl mb-4">⚠️</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Failed to Load Menu</h2>
-        <p className="text-gray-600 mb-6">{error}</p>
-        <button
-          onClick={onRetry}
-          className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
-        >
-          Try Again
-        </button>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md mx-auto text-center">
+        <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-red-600" />
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          Unable to Load Menu
+        </h2>
+        <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+          {error}
+        </p>
+        <div className="space-y-3">
+          <button
+            onClick={onRetry}
+            disabled={isLoading}
+            className="w-full bg-gray-900 hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try Again
+              </>
+            )}
+          </button>
+          
+          {(isServerError || isNetworkError) && onRetryWithBackoff && (
+            <button
+              onClick={onRetryWithBackoff}
+              disabled={isLoading}
+              className="w-full border border-gray-300 hover:border-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed text-gray-700 disabled:text-gray-400 px-6 py-3 rounded-lg transition-colors flex items-center justify-center"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Retry with Backoff
+            </button>
+          )}
+          
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full text-sm text-gray-500 hover:text-gray-700 px-6 py-2 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+        
+        {/* 错误类型提示 */}
+        {isNetworkError && (
+          <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-left">
+            <p className="text-xs text-orange-800">
+              <strong>Network Issue:</strong> Please check your internet connection and try again.
+            </p>
+          </div>
+        )}
+        
+        {isServerError && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
+            <p className="text-xs text-blue-800">
+              <strong>Server Issue:</strong> Our servers are experiencing temporary difficulties. Please try again in a moment.
+            </p>
+          </div>
+        )}
+
+        {/* 调试信息 (仅开发环境) */}
+        {process.env.NODE_ENV === 'development' && (
+          <details className="mt-6 text-left">
+            <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+              Debug Info
+            </summary>
+            <pre className="mt-2 text-xs bg-gray-100 p-2 rounded text-left overflow-auto max-h-32">
+              {JSON.stringify({ 
+                error: error, 
+                timestamp: new Date().toISOString(),
+                userAgent: navigator.userAgent.slice(0, 100) + '...'
+              }, null, 2)}
+            </pre>
+          </details>
+        )}
       </div>
     </div>
   )
@@ -100,20 +184,35 @@ export function MenuLayout() {
   
   const headerRef = useRef<MenuHeaderRef>(null)
 
-  // 加载菜单数据
-  const loadMenuData = async () => {
+  // 改进的加载菜单数据函数
+  const loadMenuData = async (useRetry: boolean = false) => {
     try {
       setIsLoading(true)
       setError(null)
       
-      const rawData = await fetchMenuData()
+      console.log(`Loading menu data${useRetry ? ' with retry mechanism' : ''}...`)
+      
+      let rawData;
+      if (useRetry) {
+        rawData = await fetchMenuDataWithRetry(3)
+      } else {
+        rawData = await fetchMenuData()
+      }
+      
       const { categories: loadedCategories, menuItems: loadedMenuItems } = transformMenuData(rawData)
       
-      setCategories(loadedCategories)
-      setMenuItems(loadedMenuItems)
+      setCategories(loadedCategories || [])
+      setMenuItems(loadedMenuItems || [])
+      
+      console.log('Menu data loaded successfully:', {
+        categoriesCount: loadedCategories?.length || 0,
+        menuItemsCount: loadedMenuItems?.length || 0
+      })
+      
     } catch (err) {
       console.error('Error loading menu data:', err)
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred while loading the menu'
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -166,9 +265,14 @@ export function MenuLayout() {
     }
   }
 
-  // 重试加载
+  // 普通重试
   const handleRetry = () => {
-    loadMenuData()
+    loadMenuData(false)
+  }
+
+  // 带退避机制的重试
+  const handleRetryWithBackoff = () => {
+    loadMenuData(true)
   }
 
   // 如果加载中，显示加载状态
@@ -178,7 +282,14 @@ export function MenuLayout() {
 
   // 如果出错，显示错误状态
   if (error) {
-    return <MenuError error={error} onRetry={handleRetry} />
+    return (
+      <MenuError 
+        error={error} 
+        onRetry={handleRetry}
+        onRetryWithBackoff={handleRetryWithBackoff}
+        isLoading={isLoading}
+      />
+    )
   }
 
   // 如果没有数据，显示空状态
@@ -191,9 +302,20 @@ export function MenuLayout() {
           <p className="text-gray-600 mb-6">The menu is currently being updated. Please check back later.</p>
           <button
             onClick={handleRetry}
-            className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+            disabled={isLoading}
+            className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors inline-flex items-center"
           >
-            Refresh Menu
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh Menu
+              </>
+            )}
           </button>
         </div>
       </div>

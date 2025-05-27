@@ -3,25 +3,7 @@
 import type React from "react"
 
 import { CartItemCard } from "./cart-item-card"
-
-interface CartOption {
-  optionId: string
-  optionName: string
-  groupName: string
-  priceDelta: number
-  quantity: number
-}
-
-interface CartItem {
-  id: string
-  menuItemId: string
-  name: string
-  price: number
-  imageUrl: string
-  quantity: number
-  options: CartOption[]
-  specialInstructions: string
-}
+import { CartItem } from "@/lib/utils/cart"
 
 interface CartItemListProps {
   items: CartItem[]

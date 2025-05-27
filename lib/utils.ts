@@ -26,12 +26,6 @@ export function formatDate(dateString: string): string {
   }).format(date)
 }
 
-// Generate order number
-export function generateOrderNumber(): string {
-  const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase()
-  return `ORD-${randomPart}`
-}
-
 // Truncate text
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text

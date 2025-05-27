@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
@@ -11,6 +10,8 @@ import { CartItemList } from "@/components/cart/cart-item-list"
 import { OrderNoteInput } from "@/components/cart/order-note-input"
 import { CartSummary } from "@/components/cart/cart-summary"
 import { EmptyCartNotice } from "@/components/cart/empty-cart-notice"
+import { CartApiService } from "@/lib/api/cart"
+import { formatCurrency } from "@/lib/utils/cart"
 
 interface SwipeState {
   startX: number
@@ -23,7 +24,16 @@ interface SwipeState {
 
 export default function CartClientPage() {
   const router = useRouter()
-  const { items: cartItems, removeItem, getTotalPrice, getTotalQuantity } = useCart()
+  const { 
+    items: cartItems, 
+    removeItem, 
+    getCartSummary,
+    getTotalQuantity,
+    createOrderData,
+    isSubmittingOrder,
+    setIsSubmittingOrder 
+  } = useCart()
+  
   const [customerNote, setCustomerNote] = useState("")
   const [swipeState, setSwipeState] = useState<SwipeState>({
     startX: 0,
@@ -38,13 +48,16 @@ export default function CartClientPage() {
   const [isAnimatingOut, setIsAnimatingOut] = useState(false)
   const [showSummary, setShowSummary] = useState(cartItems.length > 0)
   const [isMobile, setIsMobile] = useState(false)
-  const demoTimeoutRef = useRef<NodeJS.Timeout>()
+  const demoTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 获取购物车摘要
+  const cartSummary = getCartSummary()
 
   // Simplified scroll-based visibility - always show bottom bar when cart has items
   const [isScrollingDown, setIsScrollingDown] = useState(false)
   const [scrollY, setScrollY] = useState(0)
   const lastScrollY = useRef(0)
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>()
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Tutorial states
   const [showTutorial, setShowTutorial] = useState(false)
@@ -146,7 +159,7 @@ export default function CartClientPage() {
     }
   }, [cartItems.length, showSummary])
 
-  // Touch event handlers for swipe
+  // Touch event handlers for swipe (保持原有的触摸事件处理逻辑)
   const handleTouchStart = (e: React.TouchEvent, itemId: string) => {
     if (!isMobile || tutorialStep === "animating") return
 
@@ -174,7 +187,6 @@ export default function CartClientPage() {
           ...prev,
           isSwipeMode: true,
         }))
-        // Only prevent default when we're in swipe mode
         e.preventDefault()
       } else {
         setSwipeState({
@@ -267,9 +279,46 @@ export default function CartClientPage() {
     }, 300)
   }
 
-  // Handle checkout - navigate to checkout page
-  const handleCheckout = () => {
+  // Handle checkout - 现在支持直接创建订单或跳转到checkout页面
+  const handleCheckout = async () => {
+    // 方案1: 跳转到 checkout 页面（推荐）
     router.push("/checkout")
+    
+    // 方案2: 在此处直接创建订单（如果你想要简化流程）
+    // await handleQuickCheckout()
+  }
+
+  // 快速结账（如果选择直接在购物车页面处理订单）
+  const handleQuickCheckout = async () => {
+    // 这里可以弹出一个模态框收集用户信息，然后直接创建订单
+    // 示例代码：
+    /*
+    try {
+      setIsSubmittingOrder(true)
+      
+      // 收集用户信息（可以通过模态框或表单）
+      const customerInfo = {
+        phone: "用户手机号",
+        name: "用户姓名",
+        customerNote: customerNote
+      }
+      
+      const orderData = createOrderData(customerInfo)
+      const result = await CartApiService.createOrder(orderData)
+      
+      if (result.success) {
+        // 订单创建成功，跳转到确认页面
+        router.push(`/order-confirmation/${result.data.orderNumber}`)
+      } else {
+        // 处理错误
+        console.error('Order creation failed:', result.error)
+      }
+    } catch (error) {
+      console.error('Error creating order:', error)
+    } finally {
+      setIsSubmittingOrder(false)
+    }
+    */
   }
 
   // Go back to menu
@@ -327,11 +376,12 @@ export default function CartClientPage() {
       </div>
 
       <CartSummary
-        totalPrice={getTotalPrice()}
-        itemCount={getTotalQuantity()}
+        totalPrice={cartSummary.total}
+        itemCount={cartSummary.itemCount}
         isVisible={shouldShowCheckoutBar}
         isAnimatingOut={isAnimatingOut}
         onCheckout={handleCheckout}
+        isSubmitting={isSubmittingOrder}
       />
     </div>
   )

@@ -6,50 +6,124 @@ import { MenuCategoryTabs } from "./menu-category-tabs"
 import { MenuGrid } from "./menu-grid"
 import { MenuHeader } from "./menu-header"
 import { MenuItemModal } from "./menu-item-modal"
-// TODO: replace mockCategories with API data from /api/menu
-// Note: API data structure differences:
-// - Category.menuItems will be relation (may need include or separate query)
-// - MenuItem.price will be Decimal (convert to number)
-// - API has additional fields: createdAt, updatedAt, deleted
-import { mockCategories, menuItems } from "@/lib/mock-data"
+import { fetchMenuData, transformMenuData } from "@/lib/menu-api"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
+import { Category, MenuItemWithDetails } from "@/types"
 
-interface Option {
-  id: string
-  name: string
-  priceDelta: number
+// Loading 组件
+function MenuLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between h-16 px-4 md:px-6 lg:px-8">
+          <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-10 w-10 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+      </div>
+      
+      <div className="block md:hidden">
+        <div className="bg-white border-b border-gray-200 p-4">
+          <div className="flex gap-2">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-8 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex">
+        <div className="hidden md:block w-64 h-[calc(100vh-4rem)] border-r border-gray-200">
+          <div className="p-4 space-y-2">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex-1 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="flex bg-white rounded-xl p-0 overflow-hidden">
+                <div className="w-36 h-36 bg-gray-200 animate-pulse"></div>
+                <div className="flex-1 p-4 space-y-2">
+                  <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3"></div>
+                  <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-interface OptionGroup {
-  id: string
-  name: string
-  required: boolean
-  options: Option[]
-}
-
-interface MenuItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  imageUrl: string
-  available: boolean
-  optionGroups: OptionGroup[]
+// Error 组件
+function MenuError({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center p-8">
+        <div className="text-red-500 text-6xl mb-4">⚠️</div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Failed to Load Menu</h2>
+        <p className="text-gray-600 mb-6">{error}</p>
+        <button
+          onClick={onRetry}
+          className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export function MenuLayout() {
   const router = useRouter()
   const { addItem } = useCart()
+  
+  // 数据状态
+  const [categories, setCategories] = useState<Category[]>([])
+  const [menuItems, setMenuItems] = useState<MenuItemWithDetails[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // UI 状态
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
+  const [selectedItem, setSelectedItem] = useState<MenuItemWithDetails | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  
   const headerRef = useRef<any>(null)
 
-  // Detect screen size
+  // 加载菜单数据
+  const loadMenuData = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      const rawData = await fetchMenuData()
+      const { categories: loadedCategories, menuItems: loadedMenuItems } = transformMenuData(rawData)
+      
+      setCategories(loadedCategories)
+      setMenuItems(loadedMenuItems)
+    } catch (err) {
+      console.error('Error loading menu data:', err)
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 初始加载
+  useEffect(() => {
+    loadMenuData()
+  }, [])
+
+  // 检测屏幕尺寸
   useEffect(() => {
     const checkIsMobile = () => {
       setIsMobile(window.innerWidth < 768)
@@ -57,16 +131,15 @@ export function MenuLayout() {
 
     checkIsMobile()
     window.addEventListener("resize", checkIsMobile)
-
     return () => window.removeEventListener("resize", checkIsMobile)
   }, [])
 
-  // Handle cart click - navigate to cart page
+  // 处理购物车点击
   const handleCartClick = () => {
     router.push("/cart")
   }
 
-  // Close sidebar when category is selected on mobile
+  // 处理分类选择
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId)
     if (isMobile) {
@@ -74,22 +147,56 @@ export function MenuLayout() {
     }
   }
 
-  // Filter menu items based on selected category
-  const filteredItems =
-    selectedCategory === "all" ? menuItems : menuItems.filter((item) => item.categoryId === selectedCategory)
+  // 过滤菜单项
+  const filteredItems = selectedCategory === "all" 
+    ? menuItems 
+    : menuItems.filter((item) => item.categoryId === selectedCategory)
 
-  // Handle menu item click
-  const handleMenuItemClick = (item: MenuItem) => {
+  // 处理菜单项点击
+  const handleMenuItemClick = (item: MenuItemWithDetails) => {
     setSelectedItem(item)
     setIsModalOpen(true)
   }
 
-  // Handle cart animation from menu cards or modal
+  // 处理购物车动画
   const handleCartAnimation = (element: HTMLElement, isDecrease = false) => {
-    // Trigger cart icon animation
     if (headerRef.current?.triggerAnimation) {
       headerRef.current.triggerAnimation(isDecrease)
     }
+  }
+
+  // 重试加载
+  const handleRetry = () => {
+    loadMenuData()
+  }
+
+  // 如果加载中，显示加载状态
+  if (isLoading) {
+    return <MenuLoading />
+  }
+
+  // 如果出错，显示错误状态
+  if (error) {
+    return <MenuError error={error} onRetry={handleRetry} />
+  }
+
+  // 如果没有数据，显示空状态
+  if (categories.length === 0 && menuItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          <div className="text-gray-400 text-6xl mb-4">🍽️</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Menu Available</h2>
+          <p className="text-gray-600 mb-6">The menu is currently being updated. Please check back later.</p>
+          <button
+            onClick={handleRetry}
+            className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Refresh Menu
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -98,15 +205,13 @@ export function MenuLayout() {
         ref={headerRef}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onCartClick={handleCartClick}
-        showMenuButton={!isMobile} // Hide menu button on mobile since we use tabs
+        showMenuButton={!isMobile}
       />
 
       {/* Mobile: Horizontal Category Tabs */}
       <div className="block md:hidden">
         <MenuCategoryTabs
-          // TODO: replace mockCategories with API data from /api/menu
-          // Remember to handle data structure differences (see import comment)
-          categories={mockCategories}
+          categories={categories}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
         />
@@ -130,9 +235,7 @@ export function MenuLayout() {
               )}
             >
               <MenuSidebar
-                // TODO: replace mockCategories with API data from /api/menu
-                // Remember to handle data structure differences (see import comment)
-                categories={mockCategories}
+                categories={categories}
                 selectedCategory={selectedCategory}
                 onSelectCategory={handleCategorySelect}
               />
@@ -145,11 +248,10 @@ export function MenuLayout() {
           <div className="container mx-auto max-w-screen-xl px-4 py-6 md:px-6 lg:px-8">
             <MenuGrid
               items={filteredItems}
-              selectedCategory={selectedCategory} // 👈 新增这一行
+              selectedCategory={selectedCategory}
               onItemClick={handleMenuItemClick}
               onCartAnimation={handleCartAnimation}
             />
-
           </div>
         </main>
       </div>

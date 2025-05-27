@@ -1,4 +1,4 @@
-// lib/menu-api.ts
+// lib/api/menu.ts
 import { MenuItemWithDetails, Category, MenuOptionGroupWithOptions } from '@/types';
 
 // 错误处理辅助函数

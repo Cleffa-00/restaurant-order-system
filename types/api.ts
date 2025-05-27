@@ -96,6 +96,8 @@ export const API_ENDPOINTS = {
   LOGOUT: '/api/auth/logout',
   REFRESH: '/api/auth/refresh',
   PROFILE: '/api/auth/profile',
+  SEND_SMS: '/api/auth/send-sms',
+  VERIFY_SMS: '/api/auth/verify-sms',
   
   // Users
   USERS: '/api/users',

@@ -433,3 +433,22 @@ export enum OrderStatus {
     loading: boolean
     error: Error | null
   }
+
+
+
+
+export interface SendSmsRequest {
+  phone: string
+}
+
+export interface VerifySmsRequest {
+  phone: string
+  code: string
+}
+
+export interface RegisterWithSmsRequest {
+  phone: string
+  code: string
+  password: string
+  name?: string
+}

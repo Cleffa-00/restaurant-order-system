@@ -321,12 +321,28 @@ export default function CartClientPage() {
     */
   }
 
-  // Go back to menu
+  // Go back to menu - 智能导航
   const goBackToMenu = () => {
-    if (window.history.length > 1) {
-      window.history.back()
+    // 检查浏览器历史记录长度和当前页面
+    if (typeof window !== 'undefined') {
+      // 检查 document.referrer 是否来自本站的合理页面
+      const referrer = document.referrer
+      const currentOrigin = window.location.origin
+      const isFromSameSite = referrer.startsWith(currentOrigin)
+      
+      // 检查 referrer 是否是菜单页面
+      const isFromMenu = referrer.includes('/menu')
+      
+      // 如果有合理的历史记录且来自本站，使用 back()
+      if (window.history.length > 1 && isFromSameSite && (isFromMenu || referrer.includes('/checkout'))) {
+        window.history.back()
+      } else {
+        // 否则直接导航到菜单页面
+        router.push('/menu')
+      }
     } else {
-      window.location.href = "/menu"
+      // 服务端渲染情况下直接导航到菜单
+      router.push('/menu')
     }
   }
 

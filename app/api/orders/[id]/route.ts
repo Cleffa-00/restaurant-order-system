@@ -13,10 +13,10 @@ const prisma = new PrismaClient()
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 验证 context 和 params 是否存在
+    // 验证 context 是否存在
     if (!context || !context.params) {
       console.error('Missing context or params in route handler')
       return NextResponse.json(
@@ -29,7 +29,9 @@ export async function GET(
       )
     }
 
-    const { id } = context.params
+    // 在 Next.js 15 中需要 await params
+    const params = await context.params
+    const { id } = params
 
     if (!id) {
       return NextResponse.json(
@@ -99,10 +101,10 @@ export async function GET(
 // 更新订单状态
 export async function PATCH(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 验证 context 和 params 是否存在
+    // 验证 context 是否存在
     if (!context || !context.params) {
       console.error('Missing context or params in route handler')
       return NextResponse.json(
@@ -115,7 +117,9 @@ export async function PATCH(
       )
     }
 
-    const { id } = context.params
+    // 在 Next.js 15 中需要 await params
+    const params = await context.params
+    const { id } = params
     const body = await request.json()
 
     if (!id) {

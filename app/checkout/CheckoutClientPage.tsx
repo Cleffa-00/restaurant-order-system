@@ -1,320 +1,403 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/contexts/cart-context"
+import { CartHeader } from "@/components/cart/cart-header"
+import { CartTutorial } from "@/components/cart/cart-tutorial"
+import { CartItemList } from "@/components/cart/cart-item-list"
+import { OrderNoteInput } from "@/components/cart/order-note-input"
+import { CartSummary } from "@/components/cart/cart-summary"
+import { EmptyCartNotice } from "@/components/cart/empty-cart-notice"
 import { CartApiService } from "@/lib/api/cart"
-import { CheckoutHeader } from "@/components/checkout/checkout-header"
-import { CustomerInfoForm } from "@/components/checkout/customer-info-form"
-import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summary"
-import { CheckoutSubmitButton } from "@/components/checkout/checkout-submit-button"
-import { ErrorAlert } from "@/components/ui/error-alert" // 新增错误组件
+import { useIsMobile } from "@/hooks/use-mobile"
 
-interface CustomerInfo {
-  name: string
-  phone: string
+interface SwipeState {
+  startX: number
+  startY: number
+  currentX: number
+  isDragging: boolean
+  isSwipeMode: boolean
+  itemId: string | null
 }
 
-interface ValidationErrors {
-  name?: string
-  phone?: string
-}
-
-interface SubmissionError {
-  type: "error" | "warning" | "network"
-  title?: string
-  message: string
-}
-
-export default function CheckoutClientPage() {
+export default function CartClientPage() {
   const router = useRouter()
   const { 
     items: cartItems, 
+    removeItem, 
     getCartSummary,
+    getTotalQuantity,
     createOrderData,
-    clearCart,
     isSubmittingOrder,
     setIsSubmittingOrder 
   } = useCart()
-
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
-    name: "",
-    phone: "",
-  })
+  
   const [customerNote, setCustomerNote] = useState("")
-  const [errors, setErrors] = useState<ValidationErrors>({})
-  const [orderCompleted, setOrderCompleted] = useState(false)
-  const [submissionError, setSubmissionError] = useState<SubmissionError | null>(null)
+  const [swipeState, setSwipeState] = useState<SwipeState>({
+    startX: 0,
+    startY: 0,
+    currentX: 0,
+    isDragging: false,
+    isSwipeMode: false,
+    itemId: null,
+  })
+  const [swipedItemId, setSwipedItemId] = useState<string | null>(null)
+  const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set())
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false)
+  const [showSummary, setShowSummary] = useState(cartItems.length > 0)
+  const [isMobile, setIsMobile] = useState(false)
+  const demoTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // 获取购物车摘要
   const cartSummary = getCartSummary()
 
-  // Auto-scroll to top on page load
+  // Simplified scroll-based visibility - always show bottom bar when cart has items
+  const [isScrollingDown, setIsScrollingDown] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
+  const lastScrollY = useRef(0)
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Tutorial states
+  const [showTutorial, setShowTutorial] = useState(false)
+  const [tutorialStep, setTutorialStep] = useState<"waiting" | "animating" | "complete">("waiting")
+
+  // Detect if device is mobile/touch-enabled
+  useEffect(() => {
+    const checkIsMobile = () => {
+      const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0
+      const isSmallScreen = window.innerWidth < 768
+      setIsMobile(isTouchDevice && isSmallScreen)
+    }
+
+    checkIsMobile()
+    window.addEventListener("resize", checkIsMobile)
+
+    return () => window.removeEventListener("resize", checkIsMobile)
+  }, [])
+
+  // Scroll to top when component mounts
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
 
-  // Redirect to cart if no items (but not during submission or after order completion)
+  // Auto-demo animation on mobile
   useEffect(() => {
-    if (cartItems.length === 0 && !isSubmittingOrder && !orderCompleted) {
-      router.push("/cart")
-    }
-  }, [cartItems.length, isSubmittingOrder, orderCompleted, router])
+    if (isMobile && cartItems.length > 0) {
+      const hasSeenTutorial = localStorage.getItem("cart-swipe-tutorial-seen")
+      if (!hasSeenTutorial) {
+        setShowTutorial(true)
 
-  // 清除提交错误当用户开始修改表单
+        demoTimeoutRef.current = setTimeout(() => {
+          setTutorialStep("animating")
+          setSwipedItemId(cartItems[0].id)
+
+          setTimeout(() => {
+            setSwipedItemId(null)
+            setTutorialStep("complete")
+
+            setTimeout(() => {
+              setShowTutorial(false)
+              localStorage.setItem("cart-swipe-tutorial-seen", "true")
+            }, 500)
+          }, 3000)
+        }, 1000)
+      }
+    }
+
+    return () => {
+      if (demoTimeoutRef.current) {
+        clearTimeout(demoTimeoutRef.current)
+      }
+    }
+  }, [cartItems.length, isMobile])
+
+  // Simplified scroll direction detection
   useEffect(() => {
-    if (submissionError) {
-      setSubmissionError(null)
-    }
-  }, [customerInfo, customerNote])
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      const scrollThreshold = 50
 
-  // Validation functions
-  const validateName = (name: string): string | undefined => {
-    if (!name.trim()) return "Name is required"
-    if (name.trim().length < 2) return "Name must be at least 2 characters"
-    return undefined
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+
+      if (Math.abs(currentScrollY - lastScrollY.current) > scrollThreshold) {
+        const scrollingDown = currentScrollY > lastScrollY.current && currentScrollY > 100
+        setIsScrollingDown(scrollingDown)
+        setScrollY(currentScrollY)
+        lastScrollY.current = currentScrollY
+      }
+
+      // Auto-show after stopping scroll
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrollingDown(false)
+      }, 1000)
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // Handle smooth animation when cart becomes empty or gets items
+  useEffect(() => {
+    if (cartItems.length === 0 && showSummary) {
+      setIsAnimatingOut(true)
+      setTimeout(() => {
+        setShowSummary(false)
+        setIsAnimatingOut(false)
+      }, 300)
+    } else if (cartItems.length > 0 && !showSummary) {
+      setShowSummary(true)
+    }
+  }, [cartItems.length, showSummary])
+
+  // Touch event handlers for swipe (保持原有的触摸事件处理逻辑)
+  const handleTouchStart = (e: React.TouchEvent, itemId: string) => {
+    if (!isMobile || tutorialStep === "animating") return
+
+    const touch = e.touches[0]
+    setSwipeState({
+      startX: touch.clientX,
+      startY: touch.clientY,
+      currentX: touch.clientX,
+      isDragging: true,
+      isSwipeMode: false,
+      itemId,
+    })
   }
 
-  const validatePhone = (phone: string): string | undefined => {
-    if (!phone.trim()) return "Phone number is required"
-    const phoneRegex = /^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$/
-    const cleanPhone = phone.replace(/[^\d]/g, "")
-    if (cleanPhone.length !== 10) {
-      return "Please enter a valid 10-digit phone number"
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !swipeState.isDragging || tutorialStep === "animating") return
+
+    const touch = e.touches[0]
+    const deltaX = touch.clientX - swipeState.startX
+    const deltaY = touch.clientY - swipeState.startY
+
+    if (!swipeState.isSwipeMode && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        setSwipeState((prev) => ({
+          ...prev,
+          isSwipeMode: true,
+        }))
+        e.preventDefault()
+      } else {
+        setSwipeState({
+          startX: 0,
+          startY: 0,
+          currentX: 0,
+          isDragging: false,
+          isSwipeMode: false,
+          itemId: null,
+        })
+        return
+      }
     }
-    if (!phoneRegex.test(phone.replace(/\s/g, ""))) {
-      return "Please enter a valid phone number format"
+
+    if (swipeState.isSwipeMode) {
+      const clampedDeltaX = Math.max(-120, Math.min(20, deltaX))
+      setSwipeState((prev) => ({
+        ...prev,
+        currentX: swipeState.startX + clampedDeltaX,
+      }))
+
+      e.preventDefault()
     }
-    return undefined
   }
 
-  // 格式化手机号
-  const formatPhoneNumber = (value: string): string => {
-    const phoneNumber = value.replace(/[^\d]/g, "")
-    const phoneNumberLength = phoneNumber.length
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile || !swipeState.isDragging || tutorialStep === "animating") return
+
+    if (swipeState.isSwipeMode) {
+      const deltaX = swipeState.currentX - swipeState.startX
+      const threshold = -60
+
+      if (deltaX < threshold) {
+        setSwipedItemId(swipeState.itemId)
+      } else {
+        setSwipedItemId(null)
+      }
+
+      e.preventDefault()
+    }
+
+    setSwipeState({
+      startX: 0,
+      startY: 0,
+      currentX: 0,
+      isDragging: false,
+      isSwipeMode: false,
+      itemId: null,
+    })
+  }
+
+  // Get swipe transform for an item
+  const getSwipeTransform = (itemId: string) => {
+    if (!isMobile) return "translateX(0)"
+
+    if (showTutorial && tutorialStep === "animating" && itemId === cartItems[0]?.id) {
+      return "translateX(-80px)"
+    }
+
+    if (swipedItemId === itemId && tutorialStep !== "animating") {
+      return "translateX(-80px)"
+    }
+
+    if (
+      swipeState.isDragging &&
+      swipeState.itemId === itemId &&
+      swipeState.isSwipeMode &&
+      tutorialStep !== "animating"
+    ) {
+      const deltaX = swipeState.currentX - swipeState.startX
+      const clampedDeltaX = Math.max(-80, Math.min(0, deltaX))
+      return `translateX(${clampedDeltaX}px)`
+    }
+
+    return "translateX(0)"
+  }
+
+  // Remove item from cart with animation
+  const handleRemoveItem = (itemId: string) => {
+    setDeletingItems((prev) => new Set([...prev, itemId]))
+    setSwipedItemId(null)
+
+    setTimeout(() => {
+      removeItem(itemId)
+      setDeletingItems((prev) => {
+        const newSet = new Set(prev)
+        newSet.delete(itemId)
+        return newSet
+      })
+    }, 300)
+  }
+
+  // Handle checkout - 现在支持直接创建订单或跳转到checkout页面
+  const handleCheckout = async () => {
+    // 方案1: 跳转到 checkout 页面（推荐）
+    router.push("/checkout")
     
-    if (phoneNumberLength < 4) return phoneNumber
-    if (phoneNumberLength < 7) {
-      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
-    }
-    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+    // 方案2: 在此处直接创建订单（如果你想要简化流程）
+    // await handleQuickCheckout()
   }
 
-  // Handle input changes with validation
-  const handleInputChange = (field: keyof CustomerInfo, value: string) => {
-    setCustomerInfo((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }))
-    }
-  }
-
-  // Handle phone input with formatting
-  const handlePhoneChange = (value: string) => {
-    const formatted = formatPhoneNumber(value)
-    handleInputChange("phone", formatted)
-  }
-
-  // Handle validation on blur
-  const handleNameBlur = () => {
-    const error = validateName(customerInfo.name)
-    if (error) setErrors((prev) => ({ ...prev, name: error }))
-  }
-
-  const handlePhoneBlur = () => {
-    const error = validatePhone(customerInfo.phone)
-    if (error) setErrors((prev) => ({ ...prev, phone: error }))
-  }
-
-  // Validate all fields
-  const validateForm = (): boolean => {
-    const newErrors: ValidationErrors = {}
-    const nameError = validateName(customerInfo.name)
-    const phoneError = validatePhone(customerInfo.phone)
-    
-    if (nameError) newErrors.name = nameError
-    if (phoneError) newErrors.phone = phoneError
-    
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  // Check if form is valid for submit button
-  const isFormValid = () => {
-    return (
-      customerInfo.name.trim().length >= 2 &&
-      customerInfo.phone.replace(/[^\d]/g, "").length === 10 &&
-      Object.keys(errors).every(key => !errors[key as keyof ValidationErrors])
-    )
-  }
-
-  // 处理不同类型的错误
-  const handleSubmissionError = (error: any) => {
-    console.error("Error submitting order:", error)
-
-    let errorConfig: SubmissionError
-
-    if (error.name === 'TypeError' || error.message?.includes('fetch')) {
-      // 网络错误
-      errorConfig = {
-        type: "network",
-        title: "Connection Problem",
-        message: "Unable to connect to our servers. Please check your internet connection and try again."
-      }
-    } else if (error.message?.includes('validation')) {
-      // 验证错误
-      errorConfig = {
-        type: "warning", 
-        title: "Invalid Information",
-        message: error.message || "Please check your order information and try again."
-      }
-    } else if (error.message?.includes('timeout')) {
-      // 超时错误
-      errorConfig = {
-        type: "network",
-        title: "Request Timeout", 
-        message: "The request is taking longer than expected. Please try again."
-      }
-    } else {
-      // 通用错误
-      errorConfig = {
-        type: "error",
-        title: "Order Failed",
-        message: error.message || "We couldn't process your order right now. Please try again in a moment."
-      }
-    }
-
-    setSubmissionError(errorConfig)
-  }
-
-  // Handle form submission with improved error handling
-  const handleSubmit = async () => {
-    if (!validateForm()) {
-      const firstErrorField = document.querySelector('.border-red-500')
-      firstErrorField?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return
-    }
-
-    // 清除之前的错误
-    setSubmissionError(null)
-
+  // 快速结账（如果选择直接在购物车页面处理订单）
+  const handleQuickCheckout = async () => {
+    // 这里可以弹出一个模态框收集用户信息，然后直接创建订单
+    // 示例代码：
+    /*
     try {
       setIsSubmittingOrder(true)
-
-      // 创建订单数据
-      const orderData = createOrderData({
-        name: customerInfo.name.trim(),
-        phone: customerInfo.phone.replace(/[^\d]/g, ""), 
-        customerNote: customerNote.trim() || undefined
-      })
-
-      console.log('Submitting order:', orderData)
-
-      // 调用API创建订单
+      
+      // 收集用户信息（可以通过模态框或表单）
+      const customerInfo = {
+        phone: "用户手机号",
+        name: "用户姓名",
+        customerNote: customerNote
+      }
+      
+      const orderData = createOrderData(customerInfo)
       const result = await CartApiService.createOrder(orderData)
-
-      if (result.success && result.data) {
-        console.log("Order created successfully:", result.data)
-        setOrderCompleted(true)
-        clearCart()
+      
+      if (result.success) {
+        // 订单创建成功，跳转到确认页面
         router.push(`/order-confirmation/${result.data.orderNumber}`)
       } else {
-        handleSubmissionError(new Error(result.error?.message || "Order creation failed"))
+        // 处理错误
+        console.error('Order creation failed:', result.error)
       }
     } catch (error) {
-      handleSubmissionError(error)
+      console.error('Error creating order:', error)
     } finally {
       setIsSubmittingOrder(false)
     }
+    */
   }
 
-  // Show loading if no cart items and redirecting
-  if (cartItems.length === 0 && !isSubmittingOrder && !orderCompleted) {
+  // Go back to menu - 智能导航
+  const goBackToMenu = () => {
+    // 检查浏览器历史记录长度和当前页面
+    if (typeof window !== 'undefined') {
+      // 检查 document.referrer 是否来自本站的合理页面
+      const referrer = document.referrer
+      const currentOrigin = window.location.origin
+      const isFromSameSite = referrer.startsWith(currentOrigin)
+      
+      // 检查 referrer 是否是菜单页面
+      const isFromMenu = referrer.includes('/menu')
+      
+      // 如果有合理的历史记录且来自本站，使用 back()
+      if (window.history.length > 1 && isFromSameSite && (isFromMenu || referrer.includes('/checkout'))) {
+        window.history.back()
+      } else {
+        // 否则直接导航到菜单页面
+        router.push('/menu')
+      }
+    } else {
+      // 服务端渲染情况下直接导航到菜单
+      router.push('/menu')
+    }
+  }
+
+  // Reset swipe state when clicking elsewhere
+  const resetSwipe = () => {
+    if (isMobile && tutorialStep !== "animating") {
+      setSwipedItemId(null)
+    }
+  }
+
+  // Determine if checkout bar should be visible - simplified logic
+  const shouldShowCheckoutBar = showSummary && !isScrollingDown
+
+  if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Redirecting to cart...</p>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <CartHeader onBack={goBackToMenu} />
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyCartNotice onBackToMenu={goBackToMenu} />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <CheckoutHeader />
+    <div className="min-h-screen bg-gray-50" onClick={resetSwipe}>
+      <CartHeader onBack={goBackToMenu} />
 
-      <div className="max-w-2xl mx-auto p-4 space-y-6 pb-32">
-        {/* 错误提示 */}
-        {submissionError && (
-          <ErrorAlert
-            type={submissionError.type}
-            title={submissionError.title}
-            message={submissionError.message}
-            onDismiss={() => setSubmissionError(null)}
-            onRetry={submissionError.type === "network" ? handleSubmit : undefined}
-          />
-        )}
+      <CartTutorial isVisible={isMobile && showTutorial} tutorialStep={tutorialStep} />
 
-        {/* 客户信息表单 */}
-        <div className={isSubmittingOrder ? "pointer-events-none opacity-75" : ""}>
-          <CustomerInfoForm
-            customerInfo={customerInfo}
-            errors={errors}
-            onInputChange={handleInputChange}
-            onPhoneChange={handlePhoneChange}
-            onNameBlur={handleNameBlur}
-            onPhoneBlur={handlePhoneBlur}
-          />
-        </div>
-
-        {/* 订单备注 */}
-        <div className={`bg-white rounded-lg border border-gray-200 p-4 ${isSubmittingOrder ? "pointer-events-none opacity-75" : ""}`}>
-          <label htmlFor="customer-note" className="block text-sm font-medium text-gray-900 mb-2">
-            Order Notes (Optional)
-          </label>
-          <textarea
-            id="customer-note"
-            placeholder="Any special instructions for your order..."
-            value={customerNote}
-            onChange={(e) => setCustomerNote(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-gray-500 focus:ring-1 focus:ring-gray-500 resize-none"
-            rows={3}
-            maxLength={500}
-            disabled={isSubmittingOrder}
-          />
-          <div className="text-xs text-gray-500 mt-1">
-            {customerNote.length}/500 characters
-          </div>
-        </div>
-
-        {/* 订单摘要 */}
-        <CheckoutOrderSummary
-          items={cartItems.map(item => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-            options: (item.options || []).map(opt => ({
-              optionId: opt.optionId,
-              optionName: opt.optionName,
-              groupName: opt.groupName,
-              priceDelta: opt.priceDelta,
-              quantity: opt.quantity
-            })),
-            specialInstructions: item.specialInstructions
-          }))}
-          subtotal={cartSummary.subtotal}
-          taxes={cartSummary.taxAmount}
-          serviceFee={cartSummary.serviceFee}
-          total={cartSummary.total}
+      <div className={`transition-all duration-300 ease-out ${shouldShowCheckoutBar ? "pb-32" : "pb-6"}`}>
+        <CartItemList
+          items={cartItems}
+          isMobile={isMobile}
+          deletingItems={deletingItems}
+          swipedItemId={swipedItemId}
+          tutorialStep={tutorialStep}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onRemoveItem={handleRemoveItem}
+          getSwipeTransform={getSwipeTransform}
         />
+
+        {/* Order Instructions with extra bottom spacing */}
+        <OrderNoteInput value={customerNote} onChange={setCustomerNote} />
       </div>
 
-      {/* 提交按钮 */}
-      <CheckoutSubmitButton
-        total={cartSummary.total}
-        isFormValid={isFormValid()}
+      <CartSummary
+        totalPrice={cartSummary.total}
+        itemCount={cartSummary.itemCount}
+        isVisible={shouldShowCheckoutBar}
+        isAnimatingOut={isAnimatingOut}
+        onCheckout={handleCheckout}
         isSubmitting={isSubmittingOrder}
-        onSubmit={handleSubmit}
       />
     </div>
   )

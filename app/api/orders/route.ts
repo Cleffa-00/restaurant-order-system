@@ -117,10 +117,14 @@ export async function POST(request: NextRequest) {
   try {
     const body: ExtendedCreateOrderRequest = await request.json()
     console.log('Creating order with data:', JSON.stringify(body, null, 2))
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()))
 
     // 验证请求数据
     const validation = validateOrderData(body)
+    console.log('Validation result:', validation)
+    
     if (!validation.isValid) {
+      console.log('Validation failed:', validation.errors)
       return NextResponse.json(
         ApiResponseBuilder.error(
           ERROR_MESSAGES.VALIDATION_ERROR,

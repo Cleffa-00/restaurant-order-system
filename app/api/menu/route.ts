@@ -1,7 +1,6 @@
 // app/api/menu/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { ApiResponseBuilder } from '@/types/api';
 
 const prisma = new PrismaClient();
 
@@ -69,15 +68,20 @@ export async function GET(request: NextRequest) {
       })),
     }));
 
-    return NextResponse.json(ApiResponseBuilder.success(processedCategories));
+    return NextResponse.json({
+      success: true,
+      data: processedCategories
+    });
   } catch (error) {
     console.error('Error fetching menu:', error);
     return NextResponse.json(
-      ApiResponseBuilder.error(
-        'Failed to fetch menu data',
-        'INTERNAL_SERVER_ERROR',
-        500
-      ),
+      {
+        success: false,
+        error: {
+          message: 'Failed to fetch menu data',
+          code: 'INTERNAL_SERVER_ERROR',
+        }
+      },
       { status: 500 }
     );
   }

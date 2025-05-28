@@ -29,16 +29,16 @@ class ApiClient {
     const cookieAccessToken = this.getCookie('accessToken')
     const cookieRefreshToken = this.getCookie('refreshToken')
     
-    console.log('🔍 Token 检查结果:', {
-      localStorage: {
-        access: !!localAccessToken,
-        refresh: !!localRefreshToken
-      },
-      cookies: {
-        access: !!cookieAccessToken,
-        refresh: !!cookieRefreshToken
-      }
-    })
+    // console.log('🔍 Token 检查结果:', {
+    //   localStorage: {
+    //     access: !!localAccessToken,
+    //     refresh: !!localRefreshToken
+    //   },
+    //   cookies: { 
+    //     access: !!cookieAccessToken,
+    //     refresh: !!cookieRefreshToken
+    //   }
+    // })
     
     // 返回找到的任何 token，优先使用 localStorage
     return {
@@ -67,7 +67,7 @@ class ApiClient {
       localStorage.setItem('refreshToken', refreshToken)
     }
     
-    console.log('✅ Tokens 已保存到 localStorage')
+    // console.log('✅ Tokens 已保存到 localStorage')
   }
 
   private async clearStoredTokens() {
@@ -77,7 +77,7 @@ class ApiClient {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
     
-    console.log('🗑️ 已清除 localStorage 中的 tokens')
+    // console.log('🗑️ 已清除 localStorage 中的 tokens')
   }
 
   // 🔥 关键修复：处理 token 刷新，但不阻止请求
@@ -102,7 +102,7 @@ class ApiClient {
     const tokens = await this.getStoredTokens()
     
     try {
-      console.log('🔄 尝试刷新 token...')
+      // console.log('🔄 尝试刷新 token...')
       
       // 发送刷新请求，依赖 HttpOnly cookies 或 localStorage refresh token
       const response = await fetch('/api/auth/refresh', {
@@ -129,7 +129,7 @@ class ApiClient {
       // 如果返回了新的 access token，保存到 localStorage
       if (result.data?.accessToken) {
         await this.setStoredTokens(result.data.accessToken)
-        console.log('✅ Token 刷新成功')
+        // console.log('✅ Token 刷新成功')
       }
       
     } catch (error) {
@@ -166,9 +166,9 @@ class ApiClient {
       // 如果有 access token，添加到请求头
       if (tokens?.accessToken) {
         headers['Authorization'] = `Bearer ${tokens.accessToken}`
-        console.log('🎫 使用 localStorage token 发送请求')
+        // console.log('🎫 使用 localStorage token 发送请求')
       } else {
-        console.log('🍪 依赖 HttpOnly cookies 发送请求')
+        // console.log('🍪 依赖 HttpOnly cookies 发送请求')
       }
       
       const requestOptions: RequestInit = {
@@ -177,18 +177,18 @@ class ApiClient {
         headers,
       }
       
-      console.log('🚀 API 请求:', {
-        url,
-        method: requestOptions.method || 'GET',
-        hasAuthHeader: !!headers['Authorization'],
-        hasCredentials: requestOptions.credentials === 'include'
-      })
+      // console.log('🚀 API 请求:', {
+      //   url,
+      //   method: requestOptions.method || 'GET',
+      //   hasAuthHeader: !!headers['Authorization'],
+      //   hasCredentials: requestOptions.credentials === 'include'
+      // })
       
       const response = await fetch(url, requestOptions)
       
       // 🔥 如果是 401 且我们有 refresh token 或者依赖 cookies，尝试刷新
       if (response.status === 401) {
-        console.log('🔄 收到 401，尝试刷新 token...')
+        // console.log('🔄 收到 401，尝试刷新 token...')
         
         try {
           await this.refreshAccessToken()
@@ -207,7 +207,7 @@ class ApiClient {
             headers: retryHeaders,
           }
           
-          console.log('🔄 使用新 token 重试请求...')
+          // console.log('🔄 使用新 token 重试请求...')
           const retryResponse = await fetch(url, retryOptions)
           
           if (!retryResponse.ok) {
@@ -215,11 +215,11 @@ class ApiClient {
           }
           
           const retryResult: ApiResponse<T> = await retryResponse.json()
-          console.log('✅ 重试请求成功')
+          // console.log('✅ 重试请求成功')
           return retryResult
           
         } catch (refreshError) {
-          console.error('❌ Token 刷新和重试失败:', refreshError)
+          // console.error('❌ Token 刷新和重试失败:', refreshError)
           throw refreshError
         }
       }
@@ -232,11 +232,11 @@ class ApiClient {
       }
       
       const result: ApiResponse<T> = await response.json()
-      console.log('✅ API 请求成功:', endpoint)
+      // console.log('✅ API 请求成功:', endpoint)
       return result
       
     } catch (error) {
-      console.error('❌ API 请求失败:', endpoint, error)
+      // console.error('❌ API 请求失败:', endpoint, error)
       throw error
     }
   }
@@ -274,7 +274,7 @@ class ApiClient {
   // 调试方法
   async debugTokens() {
     const tokens = await this.getStoredTokens()
-    console.log('🔍 当前 Token 状态:', tokens)
+    // console.log('🔍 当前 Token 状态:', tokens)
     return tokens
   }
 }

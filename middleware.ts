@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
   if (pathname.startsWith('/admin')) {
-    console.log('🚀 Middleware: Protecting admin route:', pathname)
+    // console.log('🚀 Middleware: Protecting admin route:', pathname)
     
     // 获取tokens
     const authHeader = request.headers.get('authorization')
@@ -16,33 +16,33 @@ export async function middleware(request: NextRequest) {
                        request.cookies.get('accessToken')?.value
     const refreshToken = request.cookies.get('refreshToken')?.value
 
-    console.log('🎫 Access Token found:', !!accessToken)
-    console.log('🔄 Refresh Token found:', !!refreshToken)
+    // console.log('🎫 Access Token found:', !!accessToken)
+    // console.log('🔄 Refresh Token found:', !!refreshToken)
 
     // 尝试验证access token
     if (accessToken) {
       try {
         const payload = await verifyAccessToken(accessToken)
-        console.log('🔓 Access token valid:', !!payload)
+        // console.log('🔓 Access token valid:', !!payload)
         
         if (payload && payload.role === Role.ADMIN) {
-          console.log('✅ Access granted with valid access token')
+          // console.log('✅ Access granted with valid access token')
           return NextResponse.next()
         }
       } catch (error) {
-        console.log('❌ Access token verification failed:', error)
+        // console.log('❌ Access token verification failed:', error)
       }
     }
 
     // Access token无效或不存在，尝试用refresh token刷新
     if (refreshToken) {
-      console.log('🔄 Attempting to refresh access token...')
+      // console.log('🔄 Attempting to refresh access token...')
       
       try {
         const refreshPayload = await verifyRefreshToken(refreshToken)
         
         if (refreshPayload) {
-          console.log('✅ Refresh token valid, generating new access token...')
+          // console.log('✅ Refresh token valid, generating new access token...')
           
           // 使用内部API调用来刷新token（避免Prisma在middleware中的问题）
           const refreshResponse = await fetch(new URL('/api/auth/refresh', request.url), {
@@ -53,7 +53,7 @@ export async function middleware(request: NextRequest) {
 
           if (refreshResponse.ok) {
             const result = await refreshResponse.json()
-            console.log('🎉 Refresh API successful')
+            // console.log('🎉 Refresh API successful')
             
             if (result.success && result.data.user.role === Role.ADMIN) {
               // 创建响应并设置新的cookies
@@ -66,10 +66,10 @@ export async function middleware(request: NextRequest) {
                 secure: process.env.NODE_ENV === 'production'
               })
 
-              console.log('✅ New tokens set in cookies, allowing access')
+              // console.log('✅ New tokens set in cookies, allowing access')
               return response
             } else {
-              console.log('❌ User not admin or refresh failed')
+              // console.log('❌ User not admin or refresh failed')
             }
           } else {
             console.log('❌ Refresh API failed:', refreshResponse.status)

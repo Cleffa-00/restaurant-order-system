@@ -1,18 +1,19 @@
 // app/api/auth/register/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { signToken, hashPassword } from '@/lib/auth'
+import { generateTokenPair, hashPassword } from '@/lib/auth'
 import { ApiResponseBuilder, ApiErrorCode } from '@/types/api'
 import { Role } from '@/types'
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, code, password, name } = await request.json()
+    const { phone, password, name, code } = await request.json()
 
-    if (!phone || !code || !password) {
+    // 只要求手机号和密码，验证码是可选的
+    if (!phone || !password) {
       return Response.json(
         ApiResponseBuilder.error(
-          'Phone, code and password are required',
+          'Phone and password are required',
           ApiErrorCode.MISSING_REQUIRED_FIELD,
           400
         ),
@@ -20,16 +21,48 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 先验证SMS码
-    const smsVerifyResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-sms`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, code }),
-    })
+    // 如果提供了验证码，则验证SMS
+    if (code) {
+      try {
+        const smsVerifyResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/verify-sms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, code }),
+        })
 
-    if (!smsVerifyResponse.ok) {
-      const errorData = await smsVerifyResponse.json()
-      return Response.json(errorData, { status: smsVerifyResponse.status })
+        if (!smsVerifyResponse.ok) {
+          let errorMessage = 'Invalid verification code'
+          try {
+            const errorData = await smsVerifyResponse.json()
+            errorMessage = errorData.error?.message || errorMessage
+          } catch (parseError) {
+            console.error('Failed to parse SMS verification error:', parseError)
+          }
+          
+          return Response.json(
+            ApiResponseBuilder.error(
+              errorMessage,
+              ApiErrorCode.INVALID_CREDENTIALS,
+              400
+            ),
+            { status: 400 }
+          )
+        }
+        
+        console.log('✅ SMS verification successful')
+      } catch (smsError) {
+        console.error('SMS verification failed:', smsError)
+        return Response.json(
+          ApiResponseBuilder.error(
+            'SMS verification service unavailable',
+            ApiErrorCode.EXTERNAL_SERVICE_ERROR,
+            500
+          ),
+          { status: 500 }
+        )
+      }
+    } else {
+      console.log('⚠️  Registration without SMS verification (development mode)')
     }
 
     // 检查用户是否已存在
@@ -57,12 +90,14 @@ export async function POST(request: NextRequest) {
         phone,
         password: hashedPassword,
         name: name || null,
-        role: Role.USER // 默认为普通用户，管理员在数据库手动设置
+        role: Role.USER // 默认为普通用户，管理员需要在数据库手动设置
       }
     })
 
+    console.log('✅ User created successfully:', user.phone)
+
     // 生成 JWT
-    const token = await signToken({
+    const tokenPair = await generateTokenPair({
       userId: user.id,
       phone: user.phone,
       role: user.role as Role
@@ -70,7 +105,8 @@ export async function POST(request: NextRequest) {
 
     const response = Response.json(
       ApiResponseBuilder.success({
-        token,
+        accessToken: tokenPair.accessToken,
+        refreshToken: tokenPair.refreshToken,
         user: {
           id: user.id,
           phone: user.phone,
@@ -81,11 +117,14 @@ export async function POST(request: NextRequest) {
       })
     )
 
-    response.headers.set(
-      'Set-Cookie', 
-      `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`
-    )
-    
+
+
+    // 设置 HttpOnly cookie
+    response.headers.set('Set-Cookie', [
+      `accessToken=${tokenPair.accessToken}; HttpOnly; Path=/; Max-Age=${15 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`,
+      `refreshToken=${tokenPair.refreshToken}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`
+    ].join(', '))
+
     return response
   } catch (error) {
     console.error('Registration error:', error)

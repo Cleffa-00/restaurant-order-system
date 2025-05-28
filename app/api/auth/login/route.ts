@@ -1,7 +1,7 @@
 // app/api/auth/login/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { signToken, verifyPassword } from '@/lib/auth'
+import { generateTokenPair, verifyPassword } from '@/lib/auth'
 import { ApiResponseBuilder, ApiErrorCode } from '@/types/api'
 import { LoginRequest, Role } from '@/types'
 
@@ -10,7 +10,6 @@ export async function POST(request: NextRequest) {
     const body: LoginRequest = await request.json()
     const { phone, password } = body
 
-    // 验证输入
     if (!phone || !password) {
       return Response.json(
         ApiResponseBuilder.error(
@@ -22,7 +21,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 查找用户
     const user = await prisma.user.findUnique({
       where: { phone }
     })
@@ -38,7 +36,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 验证密码 - 使用我们的 Web Crypto API 函数
     const isPasswordValid = await verifyPassword(password, user.password)
     
     if (!isPasswordValid) {
@@ -52,17 +49,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 生成 JWT
-    const token = await signToken({
+    // 生成双token
+    const tokenPair = await generateTokenPair({
       userId: user.id,
       phone: user.phone,
       role: user.role as Role
     })
 
-    // 创建响应
     const response = Response.json(
       ApiResponseBuilder.success({
-        token,
+        accessToken: tokenPair.accessToken,
+        refreshToken: tokenPair.refreshToken,
         user: {
           id: user.id,
           phone: user.phone,
@@ -73,11 +70,11 @@ export async function POST(request: NextRequest) {
       })
     )
 
-    // 设置 HttpOnly cookie
-    response.headers.set(
-      'Set-Cookie', 
-      `token=${token}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`
-    )
+    // 设置双cookie
+    response.headers.set('Set-Cookie', [
+      `accessToken=${tokenPair.accessToken}; HttpOnly; Path=/; Max-Age=${15 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`,
+      `refreshToken=${tokenPair.refreshToken}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`
+    ].join(', '))
     
     return response
   } catch (error) {

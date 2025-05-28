@@ -436,7 +436,9 @@ export enum OrderStatus {
 
 
 
-
+// ============================================
+// SMS Types
+// ============================================
 export interface SendSmsRequest {
   phone: string
 }
@@ -451,4 +453,31 @@ export interface RegisterWithSmsRequest {
   code: string
   password: string
   name?: string
+}
+
+
+// ============================================
+// Token Types
+// ============================================
+export interface TokenPair {
+  accessToken: string
+  refreshToken: string
+}
+
+export interface AccessTokenPayload extends JwtPayload {
+  type: 'access'
+}
+
+export interface RefreshTokenPayload {
+  userId: string
+  phone: string
+  type: 'refresh'
+  exp: number
+  iat: number
+}
+
+export interface LoginResponse {
+  accessToken: string
+  refreshToken: string
+  user: Omit<User, 'password'>
 }

@@ -1,15 +1,15 @@
-import type React from "react"
-import "./globals.css"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import { CartProvider } from "@/contexts/cart-context"
+// app/layout.tsx
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { AuthProvider } from '@/hooks/useAuth'
+import { CartProvider } from '@/contexts/cart-context'
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "Restaurant Ordering System",
-  description: "Order delicious food from your favorite restaurant",
-    generator: 'v0.dev'
+  title: 'Restaurant Order System',
+  description: 'A modern restaurant ordering system',
 }
 
 export default function RootLayout({
@@ -20,7 +20,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <CartProvider>{children}</CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   )

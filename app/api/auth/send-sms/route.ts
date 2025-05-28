@@ -1,9 +1,7 @@
 // app/api/auth/send-sms/route.ts
 import { NextRequest } from 'next/server'
 import { ApiResponseBuilder, ApiErrorCode } from '@/types/api'
-
-// 临时存储验证码 (生产环境请使用 Redis)
-const smsCodeStore = new Map<string, { code: string; expires: number }>()
+import { smsCodeStore } from '@/lib/sms-store'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,9 +25,8 @@ export async function POST(request: NextRequest) {
     // 存储验证码
     smsCodeStore.set(phone, { code, expires })
 
-    // 这里应该调用真实的短信服务
-    // 开发阶段我们只是在控制台输出
-    console.log(`SMS Code for ${phone}: ${code}`)
+    // 开发阶段在控制台输出验证码
+    console.log(`📱 SMS Code for ${phone}: ${code}`)
 
     return Response.json(
       ApiResponseBuilder.success({ 

@@ -1,9 +1,7 @@
 // app/api/auth/verify-sms/route.ts
 import { NextRequest } from 'next/server'
 import { ApiResponseBuilder, ApiErrorCode } from '@/types/api'
-
-// 使用与 send-sms 相同的存储
-const smsCodeStore = new Map<string, { code: string; expires: number }>()
+import { smsCodeStore } from '@/lib/sms-store'
 
 export async function POST(request: NextRequest) {
   try {

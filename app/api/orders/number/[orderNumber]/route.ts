@@ -17,7 +17,6 @@ export async function GET(
   try {
     // 验证 context 是否存在
     if (!context || !context.params) {
-      console.error('Missing context or params in route handler')
       return NextResponse.json(
         ApiResponseBuilder.error(
           'Invalid request parameters',
@@ -59,8 +58,6 @@ export async function GET(
       )
     }
 
-    console.log('Fetching order by number:', orderNumber)
-
     const order = await prisma.order.findUnique({
       where: {
         orderNumber: orderNumber
@@ -91,14 +88,11 @@ export async function GET(
       )
     }
 
-    console.log('Order found:', order.orderNumber, 'Status:', order.status)
-
     return NextResponse.json(
       ApiResponseBuilder.success(order, 'Order retrieved successfully')
     )
 
   } catch (error) {
-    console.error('Error fetching order by number:', error)
     return NextResponse.json(
       ApiResponseBuilder.error(
         ERROR_MESSAGES.SERVER_ERROR,

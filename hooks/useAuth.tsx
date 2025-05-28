@@ -63,13 +63,11 @@ export function AuthProvider(props: AuthProviderProps) {
 
       // 如果cookies中有新的tokens，同步到localStorage
       if (cookieAccessToken && cookieAccessToken !== localAccessToken) {
-        // console.log('🔄 Syncing access token from cookies to localStorage')
         localStorage.setItem('accessToken', cookieAccessToken)
         setAccessToken(cookieAccessToken)
       }
 
       if (cookieRefreshToken && cookieRefreshToken !== localRefreshToken) {
-        // console.log('🔄 Syncing refresh token from cookies to localStorage')
         localStorage.setItem('refreshToken', cookieRefreshToken)
       }
     }
@@ -117,7 +115,6 @@ export function AuthProvider(props: AuthProviderProps) {
         logout()
       }
     } catch (error) {
-      // console.error('Auth refresh failed:', error)
       logout()
     } finally {
       setIsLoading(false)
@@ -150,7 +147,6 @@ export function AuthProvider(props: AuthProviderProps) {
             setIsLoading(false)
           }
         } catch (error) {
-          // console.error('Failed to parse stored user data:', error)
           await refreshAuth()
         }
       } else {

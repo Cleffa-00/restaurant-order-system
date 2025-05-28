@@ -4,7 +4,7 @@ import { useState, useMemo } from "react"
 import { AdminTopbar } from "@/components/admin/AdminTopbar"
 import { OrderGrid } from "@/components/admin/orders/OrderGrid"
 import { OrderDateFilter } from "@/components/admin/orders/OrderDateFilter"
-import { mockOrders } from "@/lib/mock-data/mock-orders"
+import { mockOrders } from "@/lib/mock-orders"
 import { getEasternDateString, getTodayEasternDateString } from "@/lib/utils/date-utils"
 
 export default function AdminOrdersPage() {

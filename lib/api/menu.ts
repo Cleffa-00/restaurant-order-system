@@ -38,8 +38,7 @@ export async function fetchMenuData() {
     });
 
     if (!response.ok) {
-      const errorMessage = getErrorMessage(response.status);
-      console.error(`Menu API error: ${response.status} - ${errorMessage}`);
+      const errorMessage = getErrorMessage(response.status);  
       throw new Error(errorMessage);
     }
 
@@ -47,7 +46,6 @@ export async function fetchMenuData() {
     
     if (!result.success) {
       const errorMsg = result.error?.message || 'Failed to fetch menu data';
-      console.error('Menu API response error:', result.error);
       throw new Error(errorMsg);
     }
 
@@ -58,7 +56,6 @@ export async function fetchMenuData() {
 
     return result.data;
   } catch (error) {
-    console.error('Error fetching menu data:', error);
     
     // 提供更友好的错误消息
     if (isNetworkError(error)) {
@@ -87,8 +84,7 @@ export async function fetchMenuItems(categoryId?: string) {
     });
 
     if (!response.ok) {
-      const errorMessage = getErrorMessage(response.status);
-      console.error(`Menu Items API error: ${response.status} - ${errorMessage}`);
+      const errorMessage = getErrorMessage(response.status);  
       throw new Error(errorMessage);
     }
 
@@ -96,13 +92,11 @@ export async function fetchMenuItems(categoryId?: string) {
     
     if (!result.success) {
       const errorMsg = result.error?.message || 'Failed to fetch menu items';
-      console.error('Menu Items API response error:', result.error);
       throw new Error(errorMsg);
     }
 
     return result.data;
   } catch (error) {
-    console.error('Error fetching menu items:', error);
     
     if (isNetworkError(error)) {
       throw new Error('Unable to connect to server. Please check your internet connection.');
@@ -133,16 +127,15 @@ export async function getMenuDataServer(): Promise<{
     ]);
 
     // 检查响应状态
-    if (!categoriesRes.ok) {
-      console.error(`Categories API error: ${categoriesRes.status}`);
-    }
-    if (!menuItemsRes.ok) {
-      console.error(`Menu Items API error: ${menuItemsRes.status}`);
-    }
+    // if (!categoriesRes.ok) {
+    //   console.error(`Categories API error: ${categoriesRes.status}`);
+    // }
+    // if (!menuItemsRes.ok) {
+    //   console.error(`Menu Items API error: ${menuItemsRes.status}`);
+    // }
 
     // 如果任一请求失败，返回空数据而不是抛出错误
     if (!categoriesRes.ok || !menuItemsRes.ok) {
-      console.warn('One or more menu API calls failed, returning empty data');
       return {
         categories: [],
         menuItems: [],
@@ -156,10 +149,6 @@ export async function getMenuDataServer(): Promise<{
 
     // 检查 API 响应格式
     if (!categoriesData.success || !menuItemsData.success) {
-      console.error('API returned error response:', {
-        categoriesError: categoriesData.error,
-        menuItemsError: menuItemsData.error
-      });
       return {
         categories: [],
         menuItems: [],
@@ -171,7 +160,6 @@ export async function getMenuDataServer(): Promise<{
       menuItems: menuItemsData.data || [],
     };
   } catch (error) {
-    console.error('Error in getMenuDataServer:', error);
     // 返回空数据而不是抛出错误，避免整个页面崩溃
     return {
       categories: [],
@@ -186,11 +174,9 @@ export async function fetchMenuDataWithRetry(maxRetries: number = 3): Promise<an
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Attempting to fetch menu data (attempt ${attempt}/${maxRetries})`);
       return await fetchMenuData();
     } catch (error) {
       lastError = error as Error;
-      console.warn(`Attempt ${attempt} failed:`, error);
       
       // 如果是最后一次尝试，或者是非网络错误，直接抛出
       if (attempt === maxRetries || !isNetworkError(error)) {
@@ -210,7 +196,6 @@ export async function fetchMenuDataWithRetry(maxRetries: number = 3): Promise<an
 export function transformMenuData(categories: any[]) {
   try {
     if (!Array.isArray(categories)) {
-      console.warn('Invalid categories data provided to transformMenuData');
       return { categories: [], menuItems: [] };
     }
 
@@ -219,7 +204,6 @@ export function transformMenuData(categories: any[]) {
       // 扁平化所有菜单项，添加 category 信息
       menuItems: categories.flatMap(category => {
         if (!category.menuItems || !Array.isArray(category.menuItems)) {
-          console.warn(`Category ${category.name} has no valid menuItems`);
           return [];
         }
         
@@ -243,7 +227,6 @@ export function transformMenuData(categories: any[]) {
       }),
     };
   } catch (error) {
-    console.error('Error transforming menu data:', error);
     return { categories: [], menuItems: [] };
   }
 }

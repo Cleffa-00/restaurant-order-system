@@ -30,7 +30,6 @@ import {
   
         return result
       } catch (error) {
-        console.error('Create order error:', error)
         throw error
       }
     }
@@ -49,7 +48,6 @@ import {
   
         return result
       } catch (error) {
-        console.error('Get order error:', error)
         throw error
       }
     }
@@ -68,7 +66,6 @@ import {
   
         return result
       } catch (error) {
-        console.error('Track order error:', error)
         throw error
       }
     }
@@ -94,7 +91,6 @@ import {
   
         return result
       } catch (error) {
-        console.error('Create payment intent error:', error)
         throw error
       }
     }
@@ -120,7 +116,6 @@ import {
   
         return result
       } catch (error) {
-        console.error('Confirm payment error:', error)
         throw error
       }
     }

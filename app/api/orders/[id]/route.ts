@@ -18,7 +18,6 @@ export async function GET(
   try {
     // 验证 context 是否存在
     if (!context || !context.params) {
-      console.error('Missing context or params in route handler')
       return NextResponse.json(
         ApiResponseBuilder.error(
           'Invalid request parameters',
@@ -43,8 +42,6 @@ export async function GET(
         { status: API_RESPONSE_CODES.BAD_REQUEST }
       )
     }
-
-    console.log('Fetching order by ID:', id)
 
     const order = await prisma.order.findUnique({
       where: {
@@ -75,14 +72,11 @@ export async function GET(
       )
     }
 
-    console.log('Order found:', order.orderNumber)
-
     return NextResponse.json(
       ApiResponseBuilder.success(order, 'Order retrieved successfully')
     )
 
   } catch (error) {
-    console.error('Error fetching order by ID:', error)
     return NextResponse.json(
       ApiResponseBuilder.error(
         ERROR_MESSAGES.SERVER_ERROR,
@@ -106,7 +100,6 @@ export async function PATCH(
   try {
     // 验证 context 是否存在
     if (!context || !context.params) {
-      console.error('Missing context or params in route handler')
       return NextResponse.json(
         ApiResponseBuilder.error(
           'Invalid request parameters',
@@ -174,8 +167,6 @@ export async function PATCH(
         { status: API_RESPONSE_CODES.BAD_REQUEST }
       )
     }
-
-    console.log('Updating order:', id, 'with data:', body)
 
     // 检查订单是否存在
     const existingOrder = await prisma.order.findUnique({
@@ -246,14 +237,11 @@ export async function PATCH(
       }
     })
 
-    console.log('Order updated successfully:', updatedOrder.orderNumber)
-
     return NextResponse.json(
       ApiResponseBuilder.success(updatedOrder, SUCCESS_MESSAGES.ORDER_UPDATED)
     )
 
   } catch (error) {
-    console.error('Error updating order:', error)
     return NextResponse.json(
       ApiResponseBuilder.error(
         ERROR_MESSAGES.SERVER_ERROR,

@@ -65,13 +65,6 @@ export async function middleware(request: NextRequest) {
                 sameSite: 'lax',
                 secure: process.env.NODE_ENV === 'production'
               })
-              response.cookies.set('refreshToken', result.data.refreshToken, {
-                httpOnly: true,
-                path: '/',
-                maxAge: 7 * 24 * 60 * 60, // 7天
-                sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production'
-              })
 
               // console.log('✅ New tokens set in cookies, allowing access')
               return response

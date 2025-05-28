@@ -5,7 +5,7 @@ import { MenuHeader } from "@/components/menu/menu-header"
 import { MenuCategoryTabs } from "@/components/menu/menu-category-tabs"
 import { MenuGrid } from "@/components/menu/menu-grid"
 import { MenuItemModal } from "@/components/menu/menu-item-modal"
-import type { AdminCategory } from "@/lib/mock-data/admin-menu"
+import type { AdminCategory } from "@/types/admin"
 
 interface MenuPreviewProps {
   categories: AdminCategory[]
@@ -25,20 +25,28 @@ function transformAdminDataForMenu(adminCategories: AdminCategory[]) {
         id: item.id,
         name: item.name,
         description: item.description,
-        price: item.price,
+        price: Number(item.price), // 确保价格是数字类型
         imageUrl: item.imageUrl,
         available: item.available,
         categoryId: item.categoryId,
+        category: null, // 添加缺失的字段
+        deleted: item.deleted,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
         optionGroups: (item.optionGroups || []).map((group) => ({
           id: group.id,
+          menuItemId: item.id, // 添加缺失的字段
           name: group.name,
           required: group.required,
+          deleted: group.deleted || false, // 添加缺失的字段
           options: (group.options || [])
-            .filter((option) => option.available)
+            // 移除 available 过滤，因为数据库中没有这个字段
             .map((option) => ({
               id: option.id,
+              groupId: group.id, // 添加缺失的字段
               optionName: option.name,
-              priceDelta: option.priceDelta,
+              priceDelta: Number(option.priceDelta), // 确保价格差异是数字类型
+              deleted: option.deleted || false, // 添加缺失的字段
             })),
         })),
       })),
@@ -112,7 +120,7 @@ export function MenuPreview({ categories }: MenuPreviewProps) {
       <div className="h-[calc(100vh-7rem)] overflow-hidden">
         {menuCategories.length > 0 ? (
           <div className="h-full flex flex-col">
-            <MenuHeader />
+            <MenuHeader onMenuClick={() => {}} />
 
             <div className="border-b border-gray-200 sticky top-0 z-20 bg-white">
               <MenuCategoryTabs
@@ -133,7 +141,11 @@ export function MenuPreview({ categories }: MenuPreviewProps) {
                       </div>
                     )}
 
-                    <MenuGrid items={category.menuItems} onItemClick={handleMenuItemClick} />
+                    <MenuGrid 
+                      items={category.menuItems} 
+                      selectedCategory={selectedCategoryId}
+                      onItemClick={handleMenuItemClick} 
+                    />
 
                     {category.menuItems.length === 0 && (
                       <div className="text-center py-8 text-gray-500">
@@ -173,7 +185,6 @@ export function MenuPreview({ categories }: MenuPreviewProps) {
             isOpen={!!selectedMenuItem}
             onClose={handleCloseModal}
             onCartAnimation={() => {
-              console.log("Preview mode: Cart animation triggered")
             }}
           />
         </div>
@@ -181,3 +192,5 @@ export function MenuPreview({ categories }: MenuPreviewProps) {
     </div>
   )
 }
+
+export default MenuPreview

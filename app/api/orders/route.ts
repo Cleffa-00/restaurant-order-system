@@ -116,15 +116,11 @@ function validateOrderData(data: any): { isValid: boolean; errors: string[] } {
 export async function POST(request: NextRequest) {
   try {
     const body: ExtendedCreateOrderRequest = await request.json()
-    console.log('Creating order with data:', JSON.stringify(body, null, 2))
-    console.log('Request headers:', Object.fromEntries(request.headers.entries()))
 
     // 验证请求数据
     const validation = validateOrderData(body)
-    console.log('Validation result:', validation)
     
     if (!validation.isValid) {
-      console.log('Validation failed:', validation.errors)
       return NextResponse.json(
         ApiResponseBuilder.error(
           ERROR_MESSAGES.VALIDATION_ERROR,
@@ -266,15 +262,12 @@ export async function POST(request: NextRequest) {
       })
     })
 
-    console.log('Order created successfully:', order?.orderNumber)
-
     return NextResponse.json(
       ApiResponseBuilder.success(order, SUCCESS_MESSAGES.ORDER_CREATED),
       { status: API_RESPONSE_CODES.CREATED }
     )
 
   } catch (error) {
-    console.error('Error creating order:', error)
 
     // 处理已知的错误类型
     if (error instanceof Error) {
@@ -351,7 +344,6 @@ export async function GET(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error('Error fetching orders:', error)
     return NextResponse.json(
       ApiResponseBuilder.error(
         ERROR_MESSAGES.SERVER_ERROR,

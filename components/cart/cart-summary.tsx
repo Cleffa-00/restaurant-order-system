@@ -51,7 +51,6 @@ export function CartSummary({
         duration: 5000,
       })
     } catch (error) {
-      console.error('Checkout error:', error)
       toast({
         type: "error",
         message: "Order failed. Please try again.",

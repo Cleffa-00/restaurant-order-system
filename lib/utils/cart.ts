@@ -146,7 +146,6 @@ export function loadCartFromStorage(): CartItem[] {
     const parsed = JSON.parse(stored)
     return Array.isArray(parsed) ? parsed : []
   } catch (error) {
-    console.error('Error loading cart from storage:', error)
     return []
   }
 }
@@ -160,7 +159,6 @@ export function saveCartToStorage(items: CartItem[]): void {
   try {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items || []))
   } catch (error) {
-    console.error('Error saving cart to storage:', error)
   }
 }
 
@@ -173,7 +171,6 @@ export function clearCartStorage(): void {
   try {
     localStorage.removeItem(CART_STORAGE_KEY)
   } catch (error) {
-    console.error('Error clearing cart storage:', error)
   }
 }
 

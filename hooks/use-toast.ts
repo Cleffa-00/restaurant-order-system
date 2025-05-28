@@ -6,7 +6,7 @@ import * as React from "react"
 const TOAST_LIMIT = 3
 const TOAST_REMOVE_DELAY = 1000
 
-type ToasterToast = {
+export interface ToastItem {
   id: string
   type: "success" | "error" | "info"
   message: string
@@ -32,23 +32,23 @@ type ActionType = typeof actionTypes
 type Action =
   | {
       type: ActionType["ADD_TOAST"]
-      toast: ToasterToast
+      toast: ToastItem
     }
   | {
       type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast>
+      toast: Partial<ToastItem>
     }
   | {
       type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
+      toastId?: ToastItem["id"]
     }
   | {
       type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
+      toastId?: ToastItem["id"]
     }
 
 interface State {
-  toasts: ToasterToast[]
+  toasts: ToastItem[]
 }
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
@@ -88,8 +88,6 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
@@ -102,15 +100,12 @@ export const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: state.toasts.map((t) =>
           t.id === toastId || toastId === undefined
-            ? {
-                ...t,
-                // For your toast component, we don't need to set open: false
-                // since it handles its own visibility state
-              }
+            ? { ...t }
             : t
         ),
       }
     }
+    
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
         return {
@@ -136,12 +131,12 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
+type Toast = Omit<ToastItem, "id">
 
 function toast({ type, message, duration = 3000 }: Toast) {
   const id = genId()
 
-  const update = (props: Partial<ToasterToast>) =>
+  const update = (props: Partial<ToastItem>) =>
     dispatch({
       type: "UPDATE_TOAST",
       toast: { ...props, id },
@@ -166,6 +161,23 @@ function toast({ type, message, duration = 3000 }: Toast) {
   }
 }
 
+// 添加便捷方法
+const showSuccess = (message: string, duration?: number) => {
+  return toast({ type: "success", message, duration })
+}
+
+const showError = (message: string, duration?: number) => {
+  return toast({ type: "error", message, duration })
+}
+
+const showInfo = (message: string, duration?: number) => {
+  return toast({ type: "info", message, duration })
+}
+
+const clearAll = () => {
+  dispatch({ type: "REMOVE_TOAST" })
+}
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
@@ -177,13 +189,42 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [])
+
+  // 便捷方法，保持与第二个实现的 API 兼容
+  const addToast = React.useCallback((type: "success" | "error" | "info", message: string, duration = 3000) => {
+    return toast({ type, message, duration })
+  }, [])
+
+  const removeToast = React.useCallback((id: string) => {
+    dispatch({ type: "DISMISS_TOAST", toastId: id })
+  }, [])
 
   return {
-    ...state,
+    // 状态
+    toasts: state.toasts,
+    
+    // 原始方法
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+    
+    // 便捷方法（兼容第二个实现的 API）
+    addToast,
+    removeToast,
+    showSuccess: React.useCallback((message: string, duration?: number) => {
+      return showSuccess(message, duration)
+    }, []),
+    showError: React.useCallback((message: string, duration?: number) => {
+      return showError(message, duration)
+    }, []),
+    showInfo: React.useCallback((message: string, duration?: number) => {
+      return showInfo(message, duration)
+    }, []),
+    clearAll: React.useCallback(() => {
+      clearAll()
+    }, []),
   }
 }
 
-export { useToast, toast }
+// 导出便捷方法，可以在组件外直接使用
+export { useToast, toast, showSuccess, showError, showInfo, clearAll }

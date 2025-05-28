@@ -78,7 +78,6 @@ export async function POST(request: NextRequest) {
     
     return response
   } catch (error) {
-    console.error('Login error:', error)
     return Response.json(
       ApiResponseBuilder.error(
         'Internal server error',

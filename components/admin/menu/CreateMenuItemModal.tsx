@@ -73,10 +73,19 @@ export function CreateMenuItemModal({ categoryName, isOpen, onClose, onCreate }:
 
   const handleUpdateGroup = (updatedGroup: any) => {
     setOptionGroups((prev) => prev.map((group) => (group.id === updatedGroup.id ? updatedGroup : group)))
+    // 🔥 关闭编辑模态框
+    setEditGroupOpen(false)
+    setEditingGroup(null)
   }
 
   const handleDeleteGroup = (groupId: string) => {
     setOptionGroups((prev) => prev.filter((group) => group.id !== groupId))
+  }
+
+  const handleAddGroup = (newGroup: any) => {
+    setOptionGroups((prev) => [...prev, newGroup])
+    // 🔥 关闭添加模态框
+    setAddGroupOpen(false)
   }
 
   return (
@@ -187,8 +196,7 @@ export function CreateMenuItemModal({ categoryName, isOpen, onClose, onCreate }:
                       optionGroup={group}
                       onUpdate={() => {}}
                       onDelete={() => handleDeleteGroup(group.id)}
-                      onEdit={() => handleEditGroup(group)}
-                      isCreateMode
+                      onEdit={() => handleEditGroup(group)} // 🔥 传递编辑回调
                     />
                   ))
                 ) : (
@@ -237,7 +245,7 @@ export function CreateMenuItemModal({ categoryName, isOpen, onClose, onCreate }:
         itemId="new-item"
         isOpen={addGroupOpen}
         onClose={() => setAddGroupOpen(false)}
-        onAdd={(group) => setOptionGroups((prev) => [...prev, group])}
+        onAdd={handleAddGroup} // 🔥 使用新的处理函数
       />
 
       <EditOptionGroupModal

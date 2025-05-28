@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Trash2, Plus } from "lucide-react"
-import { optionGroupTemplates } from "@/lib/mock-data/admin-menu"
+import { optionGroupTemplates } from "@/types/admin"
 
 interface AddOptionGroupModalProps {
   itemId: string
@@ -22,6 +22,17 @@ interface OptionInput {
   id: string
   optionName: string
   priceDelta: string
+}
+
+// 定义模板类型
+interface OptionGroupTemplate {
+  id: string
+  name: string
+  required: boolean
+  options: Array<{
+    name: string
+    priceDelta: number
+  }>
 }
 
 export function AddOptionGroupModal({ itemId, isOpen, onClose, onAdd }: AddOptionGroupModalProps) {
@@ -96,13 +107,12 @@ export function AddOptionGroupModal({ itemId, isOpen, onClose, onAdd }: AddOptio
       id: `temp-${Date.now()}`,
       name: customName.trim(),
       required: customRequired,
-      multiSelect: false,
-      maxSelections: undefined,
-      options: options.map((option) => ({
+      // 移除了 multiSelect 和 maxSelections
+      options: options.map((option: OptionInput) => ({
         id: `temp-option-${Date.now()}-${Math.random()}`,
         name: option.optionName.trim(),
         priceDelta: Number.parseFloat(option.priceDelta),
-        available: true,
+        // 移除了 available 字段
       })),
     }
 
@@ -110,18 +120,17 @@ export function AddOptionGroupModal({ itemId, isOpen, onClose, onAdd }: AddOptio
     handleClose()
   }
 
-  const handleAddTemplate = (template: (typeof optionGroupTemplates)[0]) => {
+  const handleAddTemplate = (template: OptionGroupTemplate) => {
     const newOptionGroup = {
       id: `temp-${Date.now()}`,
       name: template.name,
       required: template.required,
-      multiSelect: template.multiSelect || false,
-      maxSelections: template.maxSelections,
-      options: template.options.map((option, index) => ({
+      // 移除了 multiSelect 和 maxSelections 的引用
+      options: template.options.map((option: any, index: number) => ({
         id: `temp-option-${Date.now()}-${index}`,
         name: option.name,
         priceDelta: option.priceDelta,
-        available: true,
+        // 移除了 available 字段
       })),
     }
 
@@ -315,14 +324,13 @@ export function AddOptionGroupModal({ itemId, isOpen, onClose, onAdd }: AddOptio
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base font-medium text-gray-900">{template.name}</CardTitle>
                     <CardDescription className="text-sm text-gray-600">
-                      {template.required ? "Required" : "Optional"} •{" "}
-                      {template.multiSelect ? "Multi-select" : "Single select"}
-                      {template.maxSelections && ` • Max ${template.maxSelections}`}
+                      {template.required ? "Required" : "Optional"}
+                      {/* 移除了 multiSelect 和 maxSelections 的显示 */}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="text-sm text-gray-500">
-                      {template.options.length} options: {template.options.map((opt) => opt.name).join(", ")}
+                      {template.options.length} options: {template.options.map((opt: any) => opt.name).join(", ")}
                     </div>
                   </CardContent>
                 </Card>

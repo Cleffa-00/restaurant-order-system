@@ -49,7 +49,6 @@ export async function verifyPassword(password: string, storedHash: string): Prom
     return newHash.length === originalHash.length && 
            newHash.every((byte, index) => byte === originalHash[index])
   } catch (error) {
-    console.error('Password verification failed:', error)
     return false
   }
 }
@@ -68,6 +67,11 @@ export async function signRefreshToken(payload: Omit<RefreshTokenPayload, 'exp' 
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
     .sign(JWT_SECRET)
+}
+
+// 🆕 单独生成 Access Token 的函数（用于 refresh 场景）
+export async function generateAccessToken(userPayload: { userId: string; phone: string; role: Role }): Promise<string> {
+  return signAccessToken(userPayload)
 }
 
 // 生成Token对
@@ -96,7 +100,6 @@ export async function verifyAccessToken(token: string): Promise<AccessTokenPaylo
     
     return null
   } catch (error) {
-    console.error('Access token verification failed:', error)
     return null
   }
 }
@@ -116,7 +119,6 @@ export async function verifyRefreshToken(token: string): Promise<RefreshTokenPay
     
     return null
   } catch (error) {
-    console.error('Refresh token verification failed:', error)
     return null
   }
 }

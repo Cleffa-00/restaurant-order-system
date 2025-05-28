@@ -311,10 +311,8 @@ export default function CartClientPage() {
         router.push(`/order-confirmation/${result.data.orderNumber}`)
       } else {
         // 处理错误
-        console.error('Order creation failed:', result.error)
       }
     } catch (error) {
-      console.error('Error creating order:', error)
     } finally {
       setIsSubmittingOrder(false)
     }

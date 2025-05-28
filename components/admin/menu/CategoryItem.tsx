@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { ChevronUp, ChevronDown, Trash2, GripVertical } from "lucide-react"
-import type { AdminCategory } from "@/lib/mock-data/admin-menu"
+import type { AdminCategory } from "@/types/admin"
 
 interface CategoryItemProps {
   category: AdminCategory
@@ -77,7 +77,7 @@ export function CategoryItem({
               e.stopPropagation()
               onDelete(category.id)
             }}
-            className="h-9 w-9 rounded-full p-0 text-gray-400 hover:bg-gray-100 hover:shadow-sm hover:text-red-600 hover:bg-red-50"
+            className="h-9 w-9 rounded-full p-0 text-gray-400 hover:shadow-sm hover:text-red-600 hover:bg-red-50 transition-all"
           >
             <Trash2 className="h-4 w-4" />
           </Button>

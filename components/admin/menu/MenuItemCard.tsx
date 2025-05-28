@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch"
 import { Card, CardContent } from "@/components/ui/card"
 import { Edit, Trash2 } from "lucide-react"
 import Image from "next/image"
-import type { AdminMenuItem } from "@/lib/mock-data/admin-menu"
+import type { AdminMenuItem } from "@/types/admin"
 
 interface MenuItemCardProps {
   item: AdminMenuItem
@@ -31,7 +31,7 @@ export function MenuItemCard({ item, onEdit, onDelete, onToggleAvailable }: Menu
             <div className="flex items-start justify-between mb-3">
               <div className="min-w-0 flex-1 mr-3">
                 <h3 className="font-semibold text-gray-900 text-base truncate">{item.name}</h3>
-                <p className="text-lg font-bold text-gray-900 mt-1">${item.price.toFixed(2)}</p>
+                <p className="text-lg font-bold text-gray-900 mt-1">${Number(item.price).toFixed(2)}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Button

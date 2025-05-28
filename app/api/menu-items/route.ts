@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
       data: processedItems
     });
   } catch (error) {
-    console.error('Error fetching menu items:', error);
     return NextResponse.json(
       {
         success: false,

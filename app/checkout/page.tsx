@@ -137,19 +137,10 @@ export default function CheckoutPage() {
         customerNote: customerNote.trim() || undefined
       })
 
-      console.log('Submitting order with cleaned data:', {
-        originalName: customerInfo.name,
-        cleanedName: customerInfo.name.trim(),
-        originalPhone: customerInfo.phone,
-        cleanedPhone: customerInfo.phone.replace(/\D/g, ""),
-        orderData
-      })
-
       // 调用API创建订单
       const result = await CartApiService.createOrder(orderData)
 
       if (result.success && result.data) {
-        console.log("Order created successfully:", result.data)
         
         // 标记订单完成
         setOrderCompleted(true)
@@ -161,11 +152,9 @@ export default function CheckoutPage() {
         router.push(`/order-confirmation/${result.data.orderNumber}`)
       } else {
         // 处理API错误
-        console.error("Order creation failed:", result.error)
         alert(`Order creation failed: ${result.error?.message || "Unknown error"}`)
       }
     } catch (error) {
-      console.error("Error submitting order:", error)
       alert(`Error submitting order: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setIsSubmittingOrder(false)

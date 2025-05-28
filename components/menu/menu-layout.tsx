@@ -190,8 +190,6 @@ export function MenuLayout() {
       setIsLoading(true)
       setError(null)
       
-      console.log(`Loading menu data${useRetry ? ' with retry mechanism' : ''}...`)
-      
       let rawData;
       if (useRetry) {
         rawData = await fetchMenuDataWithRetry(3)
@@ -204,13 +202,7 @@ export function MenuLayout() {
       setCategories(loadedCategories || [])
       setMenuItems(loadedMenuItems || [])
       
-      console.log('Menu data loaded successfully:', {
-        categoriesCount: loadedCategories?.length || 0,
-        menuItemsCount: loadedMenuItems?.length || 0
-      })
-      
     } catch (err) {
-      console.error('Error loading menu data:', err)
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred while loading the menu'
       setError(errorMessage)
     } finally {

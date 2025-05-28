@@ -54,7 +54,6 @@ export function MenuCard({ item, onClick, onCartAnimation }: MenuCardProps) {
       document.querySelector('button svg[class*="shopping"]')?.closest("button")
 
     if (!cartButton) {
-      console.warn("Cart button not found for animation")
       return
     }
 

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { MenuItemCard } from "./MenuItemCard"
-import type { AdminMenuItem, AdminCategory } from "@/lib/mock-data/admin-menu"
+import type { AdminMenuItem, AdminCategory } from "@/types/admin"
 
 interface MenuItemListProps {
   category: AdminCategory | null

@@ -53,7 +53,7 @@ export function AddCategoryModal({ isOpen, onClose, onSave }: AddCategoryModalPr
 
         <div className="space-y-6 py-6">
           <div>
-            <label htmlFor="category-name" className="block text-sm font-medium text-gray-900 mb-1 flex items-center">
+            <label htmlFor="category-name" className="flex items-center text-sm font-medium text-gray-900 mb-1">
               Category Name <span className="text-red-500 ml-1">*</span>
             </label>
             <Input

@@ -136,7 +136,6 @@ export function MenuItemModal({ item, isOpen, onClose, onCartAnimation }: MenuIt
       document.querySelector('button svg[class*="shopping"]')?.closest("button")
 
     if (!cartButton) {
-      console.warn("Cart button not found for animation")
       return
     }
 

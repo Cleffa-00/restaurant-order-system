@@ -46,7 +46,6 @@ export default function OrderConfirmationPage() {
         setError(result.error?.message || "Order not found")
       }
     } catch (err) {
-      console.error('Error fetching order:', err)
       setError(err instanceof Error ? err.message : "Failed to load order")
     } finally {
       setLoading(false)

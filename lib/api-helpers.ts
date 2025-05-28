@@ -45,8 +45,7 @@ export async function fetchCategoriesWithMenuItems(): Promise<FrontendCategory[]
 
     return transformCategories(transformedCategories as any)
   } catch (error) {
-    console.error("Error fetching categories with menu items:", error)
-    return []
+    return [];
   }
 }
 
@@ -65,8 +64,7 @@ export async function fetchMenuItemsByCategory(categoryId: string): Promise<Fron
 
     return transformMenuItems(menuItems as any)
   } catch (error) {
-    console.error("Error fetching menu items by category:", error)
-    return []
+    return [];
   }
 }
 
@@ -84,7 +82,6 @@ export async function fetchAllMenuItems(): Promise<FrontendMenuItem[]> {
 
     return transformMenuItems(menuItems as any)
   } catch (error) {
-    console.error("Error fetching all menu items:", error)
-    return []
+    return [];
   }
 }

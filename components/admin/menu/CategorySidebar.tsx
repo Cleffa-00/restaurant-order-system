@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { CategoryItem } from "./CategoryItem"
 import { AddCategoryModal } from "./AddCategoryModal"
-import type { AdminCategory } from "@/lib/mock-data/admin-menu"
+import type { AdminCategory } from "@/types/admin"
 
 interface CategorySidebarProps {
   categories: AdminCategory[]

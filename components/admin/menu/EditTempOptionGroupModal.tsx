@@ -22,7 +22,6 @@ interface OptionInput {
   id: string
   name: string
   priceDelta: string
-  available: boolean
 }
 
 export function EditTempOptionGroupModal({
@@ -34,8 +33,6 @@ export function EditTempOptionGroupModal({
 }: EditTempOptionGroupModalProps) {
   const [name, setName] = useState("")
   const [required, setRequired] = useState(false)
-  const [multiSelect, setMultiSelect] = useState(false)
-  const [maxSelections, setMaxSelections] = useState("")
   const [options, setOptions] = useState<OptionInput[]>([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showSaveConfirm, setShowSaveConfirm] = useState(false)
@@ -48,14 +45,13 @@ export function EditTempOptionGroupModal({
     if (optionGroup && isOpen) {
       setName(optionGroup.name || "")
       setRequired(optionGroup.required || false)
-      setMultiSelect(optionGroup.multiSelect || false)
-      setMaxSelections(optionGroup.maxSelections?.toString() || "")
+      // 移除了 multiSelect 和 maxSelections 的处理
       setOptions(
         optionGroup.options?.map((opt: any) => ({
           id: opt.id,
           name: opt.name,
           priceDelta: opt.priceDelta.toString(),
-          available: opt.available !== undefined ? opt.available : true,
+          // 移除了 available 字段的处理
         })) || [],
       )
     }
@@ -66,7 +62,6 @@ export function EditTempOptionGroupModal({
       id: `temp-option-${Date.now()}-${Math.random()}`,
       name: "",
       priceDelta: "0",
-      available: true,
     }
     setOptions([...options, newOption])
   }
@@ -80,11 +75,11 @@ export function EditTempOptionGroupModal({
     }
   }
 
-  const updateOption = (id: string, field: keyof OptionInput, value: string | boolean) => {
+  const updateOption = (id: string, field: keyof OptionInput, value: string) => {
     setOptions(options.map((option) => (option.id === id ? { ...option, [field]: value } : option)))
 
     // Clear error for this option if name is being updated and is now valid
-    if (field === "name" && typeof value === "string" && value.trim()) {
+    if (field === "name" && value.trim()) {
       const newErrors = new Set(optionErrors)
       newErrors.delete(id)
       setOptionErrors(newErrors)
@@ -129,13 +124,12 @@ export function EditTempOptionGroupModal({
       ...optionGroup,
       name: name.trim(),
       required,
-      multiSelect,
-      maxSelections: maxSelections ? Number.parseInt(maxSelections) : undefined,
+      // 移除了 multiSelect 和 maxSelections
       options: options.map((option) => ({
         id: option.id,
         name: option.name.trim(),
         priceDelta: Number.parseFloat(option.priceDelta),
-        available: option.available,
+        // 移除了 available 字段
       })),
     }
 
@@ -199,29 +193,7 @@ export function EditTempOptionGroupModal({
                 <Switch id="group-required" checked={required} onCheckedChange={setRequired} />
               </div>
 
-              <div className="flex items-center justify-between">
-                <Label htmlFor="group-multiselect" className="text-sm font-medium text-gray-900">
-                  Allow multiple selections
-                </Label>
-                <Switch id="group-multiselect" checked={multiSelect} onCheckedChange={setMultiSelect} />
-              </div>
-
-              {multiSelect && (
-                <div>
-                  <Label htmlFor="max-selections" className="text-sm font-medium text-gray-900 mb-2">
-                    Maximum selections (optional)
-                  </Label>
-                  <Input
-                    id="max-selections"
-                    type="number"
-                    min="1"
-                    value={maxSelections}
-                    onChange={(e) => setMaxSelections(e.target.value)}
-                    placeholder="Leave empty for no limit"
-                    className="border-gray-300 rounded-md text-sm px-3 py-2 placeholder:text-gray-400"
-                  />
-                </div>
-              )}
+              {/* 移除了 multiSelect 和 maxSelections 的 UI */}
             </div>
 
             <div className="space-y-4">
@@ -278,16 +250,7 @@ export function EditTempOptionGroupModal({
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor={`available-${option.id}`} className="text-sm font-medium text-gray-700">
-                              Available
-                            </Label>
-                            <Switch
-                              id={`available-${option.id}`}
-                              checked={option.available}
-                              onCheckedChange={(checked) => updateOption(option.id, "available", checked)}
-                            />
-                          </div>
+                          {/* 移除了 available 开关 */}
                         </div>
 
                         {options.length > 1 && (

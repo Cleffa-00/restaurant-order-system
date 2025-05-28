@@ -1,7 +1,7 @@
 // app/api/auth/refresh/route.ts
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { verifyRefreshToken, generateTokenPair } from '@/lib/auth'
+import { verifyRefreshToken, generateAccessToken } from '@/lib/auth'
 import { ApiResponseBuilder, ApiErrorCode } from '@/types/api'
 import { Role } from '@/types'
 
@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 生成新的token对
-    const newTokenPair = await generateTokenPair({
+    // 🔧 只生成新的 access token，保持原有的 refresh token
+    const newAccessToken = await generateAccessToken({
       userId: user.id,
       phone: user.phone,
       role: user.role as Role
@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
 
     const response = Response.json(
       ApiResponseBuilder.success({
-        accessToken: newTokenPair.accessToken,
-        refreshToken: newTokenPair.refreshToken,
+        accessToken: newAccessToken,
+        // 🚫 不返回新的 refresh token
         user: {
           id: user.id,
           phone: user.phone,
@@ -78,15 +78,13 @@ export async function POST(request: NextRequest) {
       })
     )
 
-    // 设置新的cookies
-    response.headers.set('Set-Cookie', [
-      `accessToken=${newTokenPair.accessToken}; HttpOnly; Path=/; Max-Age=${15 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`,
-      `refreshToken=${newTokenPair.refreshToken}; HttpOnly; Path=/; Max-Age=${7 * 24 * 60 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`
-    ].join(', '))
+    // 🔧 只设置新的 access token cookie，不触碰 refresh token
+    response.headers.set('Set-Cookie', 
+      `accessToken=${newAccessToken}; HttpOnly; Path=/; Max-Age=${15 * 60}; SameSite=Lax; Secure=${process.env.NODE_ENV === 'production'}`
+    )
     
     return response
   } catch (error) {
-    console.error('Refresh token error:', error)
     return Response.json(
       ApiResponseBuilder.error(
         'Internal server error',
@@ -95,5 +93,5 @@ export async function POST(request: NextRequest) {
       ),
       { status: 500 }
     )
-  }
+    }
 }

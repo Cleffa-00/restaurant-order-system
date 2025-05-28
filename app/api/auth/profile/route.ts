@@ -76,7 +76,6 @@ export async function GET(request: NextRequest) {
       })
     )
   } catch (error) {
-    console.error('Profile API error:', error)
     return Response.json(
       ApiResponseBuilder.error(
         'Internal server error',

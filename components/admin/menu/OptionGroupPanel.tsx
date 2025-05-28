@@ -1,3 +1,4 @@
+// 简化版 OptionGroupPanel - 只使用外部 onEdit 回调
 "use client"
 
 import { useState } from "react"
@@ -15,16 +16,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { ChevronDown, ChevronUp, Trash2, Settings, Plus } from "lucide-react"
-import type { AdminOptionGroup } from "@/lib/mock-data/admin-menu"
-import { deleteOptionGroup } from "@/lib/mock-data/admin-menu"
-import { EditOptionGroupModal } from "./EditOptionGroupModal"
+import type { AdminOptionGroup } from "@/types/admin"
 
 interface OptionGroupPanelProps {
   itemId: string
   optionGroup: AdminOptionGroup
   onUpdate: () => void
   onDelete: () => void
-  onEdit?: (optionGroup: AdminOptionGroup) => void
+  onEdit: (optionGroup: AdminOptionGroup) => void // 🔥 必需的回调，不再可选
   isCreateMode?: boolean
 }
 
@@ -33,30 +32,24 @@ export function OptionGroupPanel({
   optionGroup,
   onUpdate,
   onDelete,
-  onEdit,
+  onEdit, // 🔥 直接使用，不再检查是否存在
   isCreateMode = false,
 }: OptionGroupPanelProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
 
   if (!optionGroup) {
     return null
   }
 
   const handleDeleteGroup = () => {
-    if (isCreateMode) {
-      onDelete()
-    } else {
-      deleteOptionGroup(itemId, optionGroup.id)
-      onDelete()
-    }
+    onDelete() // 🔥 简化：统一使用 onDelete 回调
     setShowDeleteConfirm(false)
   }
 
   const formatPrice = (priceDelta: number) => {
     if (priceDelta === 0) return "Free"
-    return priceDelta > 0 ? `+$${priceDelta.toFixed(2)}` : `-$${Math.abs(priceDelta).toFixed(2)}`
+    return priceDelta > 0 ? `+${priceDelta.toFixed(2)}` : `-${Math.abs(priceDelta).toFixed(2)}`
   }
 
   const getOptionPreview = () => {
@@ -72,23 +65,8 @@ export function OptionGroupPanel({
     return validOptions.length > 3 ? `${preview} / ...` : preview
   }
 
-  const handleEditSave = (updatedGroup?: AdminOptionGroup) => {
-    setShowEditModal(false)
-    if (updatedGroup) {
-      onUpdate()
-    }
-  }
-
   const handleEditClick = () => {
-    if (isCreateMode && onEdit) {
-      // 🔥 创建模式：使用外部的 onEdit 回调
-      console.log("🟡 [OptionGroupPanel] CREATE MODE: 调用外部 onEdit")
-      onEdit(optionGroup)
-    } else {
-      // 🔥 编辑模式：使用内部的 EditOptionGroupModal
-      console.log("🟡 [OptionGroupPanel] EDIT MODE: 使用内部 EditOptionGroupModal")
-      setShowEditModal(true)
-    }
+    onEdit(optionGroup) // 🔥 直接调用外部回调
   }
 
   return (
@@ -169,14 +147,6 @@ export function OptionGroupPanel({
                             >
                               {formatPrice(option.priceDelta)}
                             </Badge>
-                            <Badge
-                              variant={option.available ? "default" : "secondary"}
-                              className={`text-xs font-medium px-3 py-1 rounded-full ${
-                                option.available ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {option.available ? "Available" : "Unavailable"}
-                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -196,18 +166,6 @@ export function OptionGroupPanel({
           </CollapsibleContent>
         </Collapsible>
       </div>
-
-      {/* 只在非创建模式下显示内部的 EditOptionGroupModal */}
-      {!isCreateMode && (
-        <EditOptionGroupModal
-          itemId={itemId}
-          optionGroup={optionGroup}
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          onSave={handleEditSave}
-          isCreateMode={false}
-        />
-      )}
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent className="bg-white border-0 shadow-sm">

@@ -80,7 +80,7 @@ graph TB
     
     subgraph "数据层"
         I --> J[Prisma ORM]
-        J --> K[PostgreSQL (Neon)]
+        J --> K[PostgreSQL \(Neon\)]
     end
     
     subgraph "外部服务"

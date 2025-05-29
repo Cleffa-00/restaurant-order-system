@@ -9,6 +9,8 @@ import { CheckoutOrderSummary } from "@/components/checkout/checkout-order-summa
 import { CheckoutSubmitButton } from "@/components/checkout/checkout-submit-button"
 import { useCheckoutForm } from "@/hooks/useCheckoutForm"
 import { CartApiService } from "@/lib/api/cart"
+import { ErrorModal } from "@/components/ui/error-modal"
+import type { CreateOrderRequest } from "@/types/order"
 
 interface CustomerInfo {
   name: string
@@ -44,6 +46,21 @@ export default function CheckoutPage() {
 
   const [customerNote, setCustomerNote] = useState("")
   const [orderCompleted, setOrderCompleted] = useState(false)
+
+  // 错误模态框状态
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    details?: string
+    showRetry: boolean
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    details: "",
+    showRetry: false
+  })
 
   // 获取购物车摘要
   const cartSummary = getCartSummary()
@@ -116,7 +133,16 @@ export default function CheckoutPage() {
     return `+${phoneNumber.slice(0, -10)} (${phoneNumber.slice(-10, -7)}) ${phoneNumber.slice(-7, -4)}-${phoneNumber.slice(-4)}`
   }
 
+  // Clear error modal
+  const clearError = () => {
+    setErrorModal({ isOpen: false, title: "", message: "", showRetry: false })
+  }
 
+  // Handle retry
+  const handleRetry = () => {
+    clearError()
+    handleSubmit() // 重新尝试提交
+  }
 
   // Handle form submission with API integration
   const handleSubmit = async () => {
@@ -129,19 +155,45 @@ export default function CheckoutPage() {
 
     try {
       setIsSubmittingOrder(true)
+      setErrorModal({ isOpen: false, title: "", message: "", showRetry: false })
 
-      // 创建订单数据 - 确保数据清理
-      const orderData = createOrderData({
+      // 创建订单数据 - 确保数据清理并转换类型
+      const baseOrderData = createOrderData({
         name: customerInfo.name.trim(),
         phone: customerInfo.phone.replace(/\D/g, ""), // 移除所有非数字字符
         customerNote: customerNote.trim() || undefined
       })
 
+      // 确保包含所有必需的字段
+      const orderData: CreateOrderRequest = {
+        phone: baseOrderData.phone,
+        name: baseOrderData.name,
+        customerNote: baseOrderData.customerNote,
+        orderSource: baseOrderData.orderSource || 'web',
+        subtotal: cartSummary.subtotal,
+        taxAmount: cartSummary.taxAmount,
+        serviceFee: cartSummary.serviceFee,
+        total: cartSummary.total,
+        items: baseOrderData.items.map(item => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          note: item.note || '',
+          unitPrice: item.unitPrice,
+          finalPrice: item.finalPrice,
+          options: item.options?.map(option => ({
+            menuOptionId: option.menuOptionId,
+            quantity: option.quantity,
+            priceDelta: option.priceDelta,
+            optionNameSnapshot: option.optionNameSnapshot,
+            groupNameSnapshot: option.groupNameSnapshot
+          })) || []
+        }))
+      }
+
       // 调用API创建订单
       const result = await CartApiService.createOrder(orderData)
 
       if (result.success && result.data) {
-        
         // 标记订单完成
         setOrderCompleted(true)
         
@@ -151,11 +203,58 @@ export default function CheckoutPage() {
         // 跳转到订单确认页面
         router.push(`/order-confirmation/${result.data.orderNumber}`)
       } else {
-        // 处理API错误
-        alert(`Order creation failed: ${result.error?.message || "Unknown error"}`)
+        // 解析错误信息
+        let title = "Order Failed"
+        let message = result.error || 'Failed to create order'
+        let details = ""
+        let showRetry = true
+        
+        // 根据错误类型设置不同的提示
+        if (result.details?.networkError) {
+          title = "Connection Error"
+          message = "Unable to connect to the server. Please check your internet connection and try again."
+          showRetry = true
+        } else if (result.details?.code === 'VALIDATION_ERROR') {
+          title = "Order Validation Failed"
+          message = "There's an issue with your order:"
+          // 优先使用 errors 数组，如果没有就使用原始错误消息
+          if (result.details?.errors && Array.isArray(result.details.errors)) {
+            details = result.details.errors.join('\n')
+          } else {
+            details = result.error || "Unknown validation error"
+          }
+          showRetry = true
+        } else if (result.details?.status === 400) {
+          title = "Invalid Request"
+          message = "Please check your order and try again."
+          details = result.error || ""
+          showRetry = true
+        } else if (result.details?.status >= 500) {
+          title = "Server Error"
+          message = "We're experiencing technical difficulties. Please try again in a moment."
+          showRetry = true
+        } else {
+          // 通用错误处理
+          details = JSON.stringify(result.details, null, 2)
+        }
+        
+        setErrorModal({
+          isOpen: true,
+          title,
+          message,
+          details,
+          showRetry
+        })
       }
     } catch (error) {
-      alert(`Error submitting order: ${error instanceof Error ? error.message : "Unknown error"}`)
+      console.error('Unexpected error during checkout:', error)
+      setErrorModal({
+        isOpen: true,
+        title: "Unexpected Error",
+        message: "Something went wrong while processing your order.",
+        details: error instanceof Error ? error.message : 'Unknown error',
+        showRetry: true
+      })
     } finally {
       setIsSubmittingOrder(false)
     }
@@ -175,6 +274,17 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <CheckoutHeader/>
+
+      {/* 错误提示模态框 */}
+      <ErrorModal
+        isOpen={errorModal.isOpen}
+        onClose={clearError}
+        title={errorModal.title}
+        message={errorModal.message}
+        details={errorModal.details}
+        showRetry={errorModal.showRetry}
+        onRetry={handleRetry}
+      />
 
       <div className="max-w-2xl mx-auto p-4 space-y-6 pb-32">
         {/* 客户信息表单 */}

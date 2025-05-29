@@ -1,14 +1,7 @@
 "use client"
 
 import { formatOrderTime } from "@/lib/utils/date-utils"
-
-interface Order {
-  id: string
-  orderNumber: string
-  total: number
-  paymentStatus: "PAID" | "UNPAID"
-  createdAt: string
-}
+import type { Order } from "@/types/order"
 
 interface OrderCardProps {
   order: Order

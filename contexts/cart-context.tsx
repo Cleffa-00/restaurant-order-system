@@ -13,7 +13,8 @@ import {
   generateCartItemId,
   areItemsIdentical
 } from "@/lib/utils/cart"
-import { CreateOrderRequest, OrderWithDetails } from "@/types"
+// 使用 order.ts 中的完整类型定义
+import { CreateOrderRequest } from "@/types/order"
 
 interface CartContextType {
   items: CartItem[]
@@ -26,7 +27,7 @@ interface CartContextType {
   getCartSummary: () => ReturnType<typeof calculateCartSummary>
   triggerBadgeAnimation: () => void
   badgeAnimating: boolean
-  // 新增：创建订单相关
+  // 修复：创建订单相关 - 使用正确的类型
   createOrderData: (customerInfo: { phone: string; name: string; customerNote?: string }) => CreateOrderRequest
   // 新增：订单提交状态
   isSubmittingOrder: boolean
@@ -114,12 +115,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return calculateCartSummary(items)
   }
 
+  // 修复：创建订单数据，返回完整的 CreateOrderRequest
   const createOrderData = (customerInfo: { 
     phone: string; 
     name: string; 
     customerNote?: string 
   }): CreateOrderRequest => {
-    return convertCartToOrder(items, customerInfo)
+    const cartSummary = calculateCartSummary(items)
+    
+    // 使用 convertCartToOrder 函数获取基础订单数据
+    const baseOrderData = convertCartToOrder(items, customerInfo)
+    
+    // 返回包含所有必需字段的完整订单数据
+    return {
+      phone: customerInfo.phone,
+      name: customerInfo.name,
+      customerNote: customerInfo.customerNote,
+      orderSource: 'web',
+      // 添加价格字段
+      subtotal: cartSummary.subtotal,
+      taxAmount: cartSummary.taxAmount,
+      serviceFee: cartSummary.serviceFee,
+      total: cartSummary.total,
+      // 转换商品数据格式
+      items: baseOrderData.items.map(item => ({
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        note: item.note || '',
+        unitPrice: baseOrderData.items.find(i => i.menuItemId === item.menuItemId)?.unitPrice || 0,
+        finalPrice: baseOrderData.items.find(i => i.menuItemId === item.menuItemId)?.finalPrice || 0,
+        options: item.options?.map(option => ({
+          menuOptionId: option.menuOptionId,
+          quantity: option.quantity,
+          priceDelta: option.priceDelta,
+          optionNameSnapshot: option.optionNameSnapshot,
+          groupNameSnapshot: option.groupNameSnapshot
+        })) || []
+      }))
+    }
   }
 
   const triggerBadgeAnimation = () => {

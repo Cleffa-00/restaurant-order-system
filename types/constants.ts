@@ -102,7 +102,7 @@ export const TIME_CONSTANTS = {
 // ============================================
 
 export const BUSINESS_RULES = {
-  MIN_ORDER_AMOUNT: 10.00, // 最低订单金额
+  MIN_ORDER_AMOUNT: 0.00, // 最低订单金额
   MAX_ORDER_ITEMS: 50, // 最大订单项数
   MAX_ITEM_QUANTITY: 99, // 单项最大数量
   DELIVERY_RADIUS: 5, // 配送半径（公里）

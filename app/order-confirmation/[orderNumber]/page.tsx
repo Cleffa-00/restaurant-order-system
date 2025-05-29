@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { CartApiService } from "@/lib/api/cart"
-import { OrderWithDetails } from "@/types"
+// 使用 order.ts 中的类型而不是 index.ts 中的 OrderWithDetails
+import { Order } from "@/types/order"
 import { formatCurrency } from "@/lib/utils/cart"
 import { 
   CheckCircle, 
@@ -26,7 +27,8 @@ export default function OrderConfirmationPage() {
   const router = useRouter()
   const orderNumber = params.orderNumber as string
 
-  const [order, setOrder] = useState<OrderWithDetails | null>(null)
+  // 修复：使用 Order 类型而不是 OrderWithDetails
+  const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
@@ -43,7 +45,8 @@ export default function OrderConfirmationPage() {
       if (result.success && result.data) {
         setOrder(result.data)
       } else {
-        setError(result.error?.message || "Order not found")
+        // 修复：result.error 是字符串，不是对象
+        setError(result.error || "Order not found")
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load order")

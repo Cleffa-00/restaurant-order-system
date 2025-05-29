@@ -59,52 +59,140 @@ function generateOrderNumber(): string {
 function validateOrderData(data: any): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
 
-  if (!data.phone || typeof data.phone !== 'string' || data.phone.length < 10) {
-    errors.push(VALIDATION_RULES.PHONE.MESSAGE)
+  // 基础数据检查
+  if (!data) {
+    errors.push('Request body is missing')
+    return { isValid: false, errors }
   }
 
-  if (!data.name || typeof data.name !== 'string' || data.name.trim().length < VALIDATION_RULES.NAME.MIN_LENGTH) {
-    errors.push(`Name must be at least ${VALIDATION_RULES.NAME.MIN_LENGTH} characters`)
+  // 联系信息验证
+  if (!data.phone) {
+    errors.push('Phone number is required')
+  } else if (typeof data.phone !== 'string') {
+    errors.push('Phone number must be a string')
+  } else if (data.phone.length < 10) {
+    errors.push(`Phone number must be at least 10 digits (received: ${data.phone.length} digits)`)
   }
 
-  if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
-    errors.push(ERROR_MESSAGES.CART_EMPTY)
+  if (!data.name) {
+    errors.push('Customer name is required')
+  } else if (typeof data.name !== 'string') {
+    errors.push('Customer name must be a string')
+  } else if (data.name.trim().length < VALIDATION_RULES.NAME.MIN_LENGTH) {
+    errors.push(`Customer name must be at least ${VALIDATION_RULES.NAME.MIN_LENGTH} characters (received: ${data.name.trim().length} characters)`)
   }
 
-  if (data.items && data.items.length > BUSINESS_RULES.MAX_ORDER_ITEMS) {
-    errors.push(`Order cannot contain more than ${BUSINESS_RULES.MAX_ORDER_ITEMS} items`)
+  // 订单项验证
+  if (!data.items) {
+    errors.push('Items array is required')
+  } else if (!Array.isArray(data.items)) {
+    errors.push(`Items must be an array (received: ${typeof data.items})`)
+  } else if (data.items.length === 0) {
+    errors.push('Cart cannot be empty - at least one item is required')
+  } else if (data.items.length > BUSINESS_RULES.MAX_ORDER_ITEMS) {
+    errors.push(`Order cannot contain more than ${BUSINESS_RULES.MAX_ORDER_ITEMS} items (received: ${data.items.length} items)`)
+  } else {
+    // 验证每个订单项
+    data.items.forEach((item: any, index: number) => {
+      const itemPrefix = `Item ${index + 1}`
+      
+      if (!item) {
+        errors.push(`${itemPrefix}: Item data is missing`)
+        return
+      }
+
+      if (!item.menuItemId) {
+        errors.push(`${itemPrefix}: Menu item ID is required`)
+      } else if (typeof item.menuItemId !== 'string') {
+        errors.push(`${itemPrefix}: Menu item ID must be a string`)
+      }
+
+      if (!item.quantity) {
+        errors.push(`${itemPrefix}: Quantity is required`)
+      } else if (typeof item.quantity !== 'number') {
+        errors.push(`${itemPrefix}: Quantity must be a number (received: ${typeof item.quantity})`)
+      } else if (item.quantity < 1) {
+        errors.push(`${itemPrefix}: Quantity must be at least 1 (received: ${item.quantity})`)
+      } else if (item.quantity > BUSINESS_RULES.MAX_ITEM_QUANTITY) {
+        errors.push(`${itemPrefix}: Quantity cannot exceed ${BUSINESS_RULES.MAX_ITEM_QUANTITY} (received: ${item.quantity})`)
+      }
+
+      if (typeof item.unitPrice !== 'number') {
+        errors.push(`${itemPrefix}: Unit price must be a number (received: ${typeof item.unitPrice})`)
+      } else if (item.unitPrice < 0) {
+        errors.push(`${itemPrefix}: Unit price cannot be negative (received: ${item.unitPrice})`)
+      }
+
+      if (typeof item.finalPrice !== 'number') {
+        errors.push(`${itemPrefix}: Final price must be a number (received: ${typeof item.finalPrice})`)
+      } else if (item.finalPrice < 0) {
+        errors.push(`${itemPrefix}: Final price cannot be negative (received: ${item.finalPrice})`)
+      }
+
+      // 验证选项
+      if (item.options && !Array.isArray(item.options)) {
+        errors.push(`${itemPrefix}: Options must be an array`)
+      } else if (item.options) {
+        item.options.forEach((option: any, optIndex: number) => {
+          const optionPrefix = `${itemPrefix}, Option ${optIndex + 1}`
+          
+          if (!option.menuOptionId) {
+            errors.push(`${optionPrefix}: Menu option ID is required`)
+          }
+          if (typeof option.quantity !== 'number' || option.quantity < 0) {
+            errors.push(`${optionPrefix}: Valid quantity is required`)
+          }
+          if (typeof option.priceDelta !== 'number') {
+            errors.push(`${optionPrefix}: Price delta must be a number`)
+          }
+        })
+      }
+    })
   }
 
-  // 验证每个订单项
-  data.items?.forEach((item: any, index: number) => {
-    if (!item.menuItemId || typeof item.menuItemId !== 'string') {
-      errors.push(`Item ${index + 1}: Menu item ID is required`)
+  // 价格验证
+  if (typeof data.subtotal !== 'number') {
+    errors.push(`Subtotal must be a number (received: ${typeof data.subtotal})`)
+  } else if (data.subtotal < 0) {
+    errors.push(`Subtotal cannot be negative (received: ${data.subtotal})`)
+  }
+
+  if (typeof data.taxAmount !== 'number') {
+    errors.push(`Tax amount must be a number (received: ${typeof data.taxAmount})`)
+  } else if (data.taxAmount < 0) {
+    errors.push(`Tax amount cannot be negative (received: ${data.taxAmount})`)
+  }
+
+  if (typeof data.serviceFee !== 'number') {
+    errors.push(`Service fee must be a number (received: ${typeof data.serviceFee})`)
+  } else if (data.serviceFee < 0) {
+    errors.push(`Service fee cannot be negative (received: ${data.serviceFee})`)
+  }
+
+  if (typeof data.total !== 'number') {
+    errors.push(`Total must be a number (received: ${typeof data.total})`)
+  } else if (data.total < BUSINESS_RULES.MIN_ORDER_AMOUNT) {
+    errors.push(`Order total must be at least $${BUSINESS_RULES.MIN_ORDER_AMOUNT} (received: $${data.total})`)
+  }
+
+  // 订单备注验证
+  if (data.customerNote && typeof data.customerNote !== 'string') {
+    errors.push(`Customer note must be a string (received: ${typeof data.customerNote})`)
+  } else if (data.customerNote && data.customerNote.length > VALIDATION_RULES.ORDER_NOTE.MAX_LENGTH) {
+    errors.push(`Customer note cannot exceed ${VALIDATION_RULES.ORDER_NOTE.MAX_LENGTH} characters (received: ${data.customerNote.length} characters)`)
+  }
+
+  // 数据一致性检查
+  if (data.items && Array.isArray(data.items) && typeof data.subtotal === 'number') {
+    const calculatedSubtotal = data.items.reduce((sum: number, item: any) => {
+      return sum + (item.finalPrice || 0)
+    }, 0)
+    
+    // 允许小的浮点数误差
+    const subtotalDiff = Math.abs(calculatedSubtotal - data.subtotal)
+    if (subtotalDiff > 0.01) {
+      errors.push(`Subtotal mismatch: calculated $${calculatedSubtotal.toFixed(2)}, received $${data.subtotal.toFixed(2)}`)
     }
-    if (!item.quantity || typeof item.quantity !== 'number' || item.quantity < 1) {
-      errors.push(`Item ${index + 1}: Valid quantity is required`)
-    }
-    if (item.quantity > BUSINESS_RULES.MAX_ITEM_QUANTITY) {
-      errors.push(`Item ${index + 1}: Quantity cannot exceed ${BUSINESS_RULES.MAX_ITEM_QUANTITY}`)
-    }
-    if (typeof item.unitPrice !== 'number' || item.unitPrice < 0) {
-      errors.push(`Item ${index + 1}: Valid unit price is required`)
-    }
-    if (typeof item.finalPrice !== 'number' || item.finalPrice < 0) {
-      errors.push(`Item ${index + 1}: Valid final price is required`)
-    }
-  })
-
-  // 验证价格
-  if (typeof data.subtotal !== 'number' || data.subtotal < 0) {
-    errors.push('Valid subtotal is required')
-  }
-  if (typeof data.total !== 'number' || data.total < BUSINESS_RULES.MIN_ORDER_AMOUNT) {
-    errors.push(`Order total must be at least ${BUSINESS_RULES.MIN_ORDER_AMOUNT}`)
-  }
-
-  // 验证订单备注长度
-  if (data.customerNote && data.customerNote.length > VALIDATION_RULES.ORDER_NOTE.MAX_LENGTH) {
-    errors.push(VALIDATION_RULES.ORDER_NOTE.MESSAGE)
   }
 
   return {
@@ -115,18 +203,55 @@ function validateOrderData(data: any): { isValid: boolean; errors: string[] } {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: ExtendedCreateOrderRequest = await request.json()
+    let body: ExtendedCreateOrderRequest
+    
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      return NextResponse.json(
+        ApiResponseBuilder.error(
+          'Invalid JSON in request body',
+          'JSON_PARSE_ERROR',
+          API_RESPONSE_CODES.BAD_REQUEST,
+          { 
+            parseError: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
+            tip: 'Check that the request body is valid JSON'
+          }
+        ),
+        { status: API_RESPONSE_CODES.BAD_REQUEST }
+      )
+    }
+
+    // 添加调试日志（生产环境可移除）
+    // console.log('Received order data:', {
+    //   hasPhone: !!body.phone,
+    //   hasName: !!body.name,
+    //   itemCount: body.items?.length || 0,
+    //   subtotal: body.subtotal,
+    //   total: body.total,
+    //   orderSource: body.orderSource
+    // })
 
     // 验证请求数据
     const validation = validateOrderData(body)
-    
+
     if (!validation.isValid) {
+      // console.log('Validation failed:', validation.errors)
       return NextResponse.json(
         ApiResponseBuilder.error(
-          ERROR_MESSAGES.VALIDATION_ERROR,
+          'Validation failed',
           'VALIDATION_ERROR',
           API_RESPONSE_CODES.BAD_REQUEST,
-          { errors: validation.errors }
+          { 
+            errors: validation.errors,
+            receivedData: {
+              hasPhone: !!body.phone,
+              hasName: !!body.name,
+              itemCount: body.items?.length || 0,
+              hasSubtotal: typeof body.subtotal === 'number',
+              hasTotal: typeof body.total === 'number'
+            }
+          }
         ),
         { status: API_RESPONSE_CODES.BAD_REQUEST }
       )
@@ -288,7 +413,12 @@ export async function POST(request: NextRequest) {
         ERROR_MESSAGES.SERVER_ERROR,
         'INTERNAL_SERVER_ERROR',
         API_RESPONSE_CODES.INTERNAL_SERVER_ERROR,
-        process.env.NODE_ENV === 'development' ? { error: error instanceof Error ? error.message : 'Unknown error' } : undefined
+        process.env.NODE_ENV === 'development' ? { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        } : {
+          tip: 'Please try again or contact support if the problem persists'
+        }
       ),
       { status: API_RESPONSE_CODES.INTERNAL_SERVER_ERROR }
     )

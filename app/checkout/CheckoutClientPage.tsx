@@ -12,6 +12,9 @@ import { CartSummary } from "@/components/cart/cart-summary"
 import { EmptyCartNotice } from "@/components/cart/empty-cart-notice"
 import { CartApiService } from "@/lib/api/cart"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { ErrorModal } from "@/components/ui/error-modal"
+// 导入订单相关的类型定义
+import type { CreateOrderRequest, Order } from '@/types/order'
 
 interface SwipeState {
   startX: number
@@ -35,6 +38,19 @@ export default function CartClientPage() {
   } = useCart()
   
   const [customerNote, setCustomerNote] = useState("")
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    details?: string
+    showRetry: boolean
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    details: "",
+    showRetry: false
+  })
   const [swipeState, setSwipeState] = useState<SwipeState>({
     startX: 0,
     startY: 0,
@@ -159,7 +175,7 @@ export default function CartClientPage() {
     }
   }, [cartItems.length, showSummary])
 
-  // Touch event handlers for swipe (保持原有的触摸事件处理逻辑)
+  // Touch event handlers for swipe
   const handleTouchStart = (e: React.TouchEvent, itemId: string) => {
     if (!isMobile || tutorialStep === "animating") return
 
@@ -279,46 +295,133 @@ export default function CartClientPage() {
     }, 300)
   }
 
-  // Handle checkout - 现在支持直接创建订单或跳转到checkout页面
+  // Handle checkout - 现在直接在这里处理订单创建
   const handleCheckout = async () => {
-    // 方案1: 跳转到 checkout 页面（推荐）
-    router.push("/checkout")
+    // 清除之前的错误
+    setErrorModal({ isOpen: false, title: "", message: "", showRetry: false })
     
-    // 方案2: 在此处直接创建订单（如果你想要简化流程）
-    // await handleQuickCheckout()
+    // 如果你想跳转到单独的 checkout 页面，使用这行代码：
+    // router.push("/checkout")
+    
+    // 否则，直接在这里处理订单创建：
+    await handleQuickCheckout()
   }
 
-  // 快速结账（如果选择直接在购物车页面处理订单）
+  // 快速结账（带详细错误处理）
   const handleQuickCheckout = async () => {
-    // 这里可以弹出一个模态框收集用户信息，然后直接创建订单
-    // 示例代码：
-    /*
     try {
       setIsSubmittingOrder(true)
+      setErrorModal({ isOpen: false, title: "", message: "", showRetry: false })
       
-      // 收集用户信息（可以通过模态框或表单）
+      // 收集用户信息（这里需要你实际的用户信息收集逻辑）
       const customerInfo = {
-        phone: "用户手机号",
-        name: "用户姓名",
+        phone: "1234567890", // 这里应该从表单获取
+        name: "Test User",   // 这里应该从表单获取
         customerNote: customerNote
       }
       
-      const orderData = createOrderData(customerInfo)
+      // 直接构建订单数据，不依赖 createOrderData 函数
+      const orderData: CreateOrderRequest = {
+        phone: customerInfo.phone,
+        name: customerInfo.name,
+        customerNote: customerInfo.customerNote,
+        orderSource: 'web',
+        subtotal: cartSummary.subtotal,
+        taxAmount: cartSummary.taxAmount,
+        serviceFee: cartSummary.serviceFee,
+        total: cartSummary.total,
+        items: cartItems.map(cartItem => ({
+          menuItemId: cartItem.menuItemId,
+          quantity: cartItem.quantity,
+          note: cartItem.specialInstructions || '',
+          unitPrice: cartItem.price,
+          finalPrice: cartItem.price * cartItem.quantity + (cartItem.options || []).reduce((sum, opt) => sum + (opt.priceDelta * opt.quantity * cartItem.quantity), 0),
+          options: (cartItem.options || []).map(option => ({
+            menuOptionId: option.optionId,
+            quantity: option.quantity,
+            priceDelta: option.priceDelta,
+            optionNameSnapshot: option.optionName,
+            groupNameSnapshot: option.groupName
+          }))
+        }))
+      }
+      
+      // 本地验证（调试用）
+      const validation = CartApiService.validateOrderData(orderData)
+      if (!validation.isValid) {
+        setErrorModal({
+          isOpen: true,
+          title: "Invalid Order Data",
+          message: "Please check your order and try again.",
+          details: validation.errors.join('\n'),
+          showRetry: true
+        })
+        return
+      }
+      
       const result = await CartApiService.createOrder(orderData)
       
-      if (result.success) {
-        // 订单创建成功，跳转到确认页面
+      if (result.success && result.data) {
+        // 清空购物车
+        cartItems.forEach(item => removeItem(item.id))
+        // 跳转到确认页面
         router.push(`/order-confirmation/${result.data.orderNumber}`)
       } else {
-        // 处理错误
-        console.error('Order creation failed:', result.error)
+        // 解析错误信息
+        let title = "Order Failed"
+        let message = result.error || 'Failed to create order'
+        let details = ""
+        let showRetry = true
+        
+        // 根据错误类型设置不同的提示
+        if (result.details?.networkError) {
+          title = "Connection Error"
+          message = "Unable to connect to the server. Please check your internet connection and try again."
+          showRetry = true
+        } else if (result.details?.code === 'VALIDATION_ERROR') {
+          title = "Order Validation Failed"
+          message = "There's an issue with your order details:"
+          // 优先使用 errors 数组，如果没有就使用原始错误消息
+          if (result.details?.errors && Array.isArray(result.details.errors)) {
+            details = result.details.errors.join('\n')
+          } else {
+            details = result.error || "Unknown validation error"
+          }
+          showRetry = true
+        } else if (result.details?.status === 400) {
+          title = "Invalid Request"
+          message = "Please check your order and try again."
+          details = result.error || ""
+          showRetry = true
+        } else if (result.details?.status >= 500) {
+          title = "Server Error"
+          message = "We're experiencing technical difficulties. Please try again in a moment."
+          showRetry = true
+        } else {
+          // 通用错误处理
+          details = JSON.stringify(result.details, null, 2)
+        }
+        
+        setErrorModal({
+          isOpen: true,
+          title,
+          message,
+          details,
+          showRetry
+        })
       }
     } catch (error) {
-      console.error('Error creating order:', error)
+      console.error('Unexpected error during checkout:', error)
+      setErrorModal({
+        isOpen: true,
+        title: "Unexpected Error",
+        message: "Something went wrong while processing your order.",
+        details: error instanceof Error ? error.message : 'Unknown error',
+        showRetry: true
+      })
     } finally {
       setIsSubmittingOrder(false)
     }
-    */
   }
 
   // Go back to menu - 智能导航
@@ -353,6 +456,11 @@ export default function CartClientPage() {
     }
   }
 
+  // Clear error message
+  const clearError = () => {
+    setErrorModal({ isOpen: false, title: "", message: "", showRetry: false })
+  }
+
   // Determine if checkout bar should be visible - simplified logic
   const shouldShowCheckoutBar = showSummary && !isScrollingDown
 
@@ -370,6 +478,17 @@ export default function CartClientPage() {
   return (
     <div className="min-h-screen bg-gray-50" onClick={resetSwipe}>
       <CartHeader onBack={goBackToMenu} />
+
+      {/* 错误提示模态框 */}
+      <ErrorModal
+        isOpen={errorModal.isOpen}
+        onClose={clearError}
+        title={errorModal.title}
+        message={errorModal.message}
+        details={errorModal.details}
+        showRetry={errorModal.showRetry}
+        onRetry={handleQuickCheckout}
+      />
 
       <CartTutorial isVisible={isMobile && showTutorial} tutorialStep={tutorialStep} />
 

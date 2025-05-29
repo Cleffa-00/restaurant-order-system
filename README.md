@@ -80,7 +80,7 @@ graph TB
     
     subgraph "数据层"
         I --> J[Prisma ORM]
-        J --> K[PostgreSQL@Neon]
+        J --> K[PostgreSQL (Neon)]
     end
     
     subgraph "外部服务"
@@ -92,6 +92,7 @@ graph TB
     B --> G
     I --> L
     I --> M
+
 ```
 
 ## 🛠️ 技术栈
@@ -319,9 +320,3 @@ pnpm start
 - [Radix UI](https://www.radix-ui.com/) - UI 组件库
 - [Prisma](https://www.prisma.io/) - ORM
 - [Vercel](https://vercel.com/) - 部署平台
-
----
-
-<div align="center">
-  Made with ❤️ by <a href="https://github.com/Cleffa-00">Cleffa-00</a>
-</div>

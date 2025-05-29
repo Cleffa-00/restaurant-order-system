@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { AdminCategory } from '@/types/admin'
 import { CreateCategoryRequest, UpdateCategoryRequest } from '@/types'
-import * as categoriesApi from '@/lib/api/admin/categories'
+import * as categoriesApi from '@/lib/api/client/admin/categories'
 
 
 export function useCategories() {

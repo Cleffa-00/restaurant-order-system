@@ -1,8 +1,8 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/forms/button"
+import { Switch } from "@/components/ui/forms/switch"
+import { Card, CardContent } from "@/components/ui/layout/card"
 import { Edit, Trash2 } from "lucide-react"
 import Image from "next/image"
 import type { AdminMenuItem } from "@/types/admin"

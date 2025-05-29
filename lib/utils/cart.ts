@@ -251,20 +251,6 @@ export function getUniqueItemCount(items: CartItem[]): number {
   return uniqueMenuItems.size
 }
 
-// ============================================
-// 格式化辅助函数
-// ============================================
-
-/**
- * 格式化货币
- */
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount || 0)
-}
-
 /**
  * 格式化项目描述（用于订单摘要）
  */

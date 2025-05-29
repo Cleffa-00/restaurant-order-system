@@ -1,7 +1,7 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/forms/button"
+import { Switch } from "@/components/ui/forms/switch"
 import { ChevronUp, ChevronDown, Trash2, GripVertical } from "lucide-react"
 import type { AdminCategory } from "@/types/admin"
 

@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/feedback/badge"
 import type { OrderStatus, PaymentStatus } from "@/types/order"
 
 interface OrderStatusBadgeProps {

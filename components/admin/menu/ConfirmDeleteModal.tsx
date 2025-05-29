@@ -7,8 +7,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/feedback/alert-dialog"
+import { Button } from "@/components/ui/forms/button"
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean

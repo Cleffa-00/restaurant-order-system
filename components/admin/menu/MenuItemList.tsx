@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/forms/button"
 import { Plus } from "lucide-react"
 import { MenuItemCard } from "./MenuItemCard"
 import type { AdminMenuItem, AdminCategory } from "@/types/admin"

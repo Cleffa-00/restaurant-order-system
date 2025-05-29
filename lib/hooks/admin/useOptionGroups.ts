@@ -1,7 +1,7 @@
 // lib/hooks/admin/useOptionGroups.ts
 import { useState, useEffect } from 'react'
 import { AdminOptionGroup, CreateOptionGroupRequest, UpdateOptionGroupRequest } from '@/types/admin'
-import * as optionGroupsApi from '@/lib/api/admin/option-groups'
+import * as optionGroupsApi from '@/lib/api/client/admin/option-groups'
 
 export function useOptionGroups(menuItemId?: string) {
   const [optionGroups, setOptionGroups] = useState<AdminOptionGroup[]>([])

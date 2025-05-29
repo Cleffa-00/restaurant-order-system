@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/forms/button"
+import { Input } from "@/components/ui/forms/input"
+import { Label } from "@/components/ui/forms/label"
+import { Switch } from "@/components/ui/forms/switch"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/feedback/dialog"
+import { Card, CardContent } from "@/components/ui/layout/card"
 import { Trash2, Plus } from "lucide-react"
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal"
 

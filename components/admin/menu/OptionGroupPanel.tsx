@@ -2,9 +2,9 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Button } from "@/components/ui/forms/button"
+import { Badge } from "@/components/ui/feedback/badge"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/navigation/collapsible"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +14,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/feedback/alert-dialog"
 import { ChevronDown, ChevronUp, Trash2, Settings, Plus } from "lucide-react"
 import type { AdminOptionGroup } from "@/types/admin"
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { getOrder, updateOrderStatus, updatePaymentStatus } from '@/lib/api/orders'
+import { getOrder, updateOrderStatus, updatePaymentStatus } from '@/lib/api/client/orders'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import type { Order, OrderStatus, PaymentStatus } from '@/types/order'
 

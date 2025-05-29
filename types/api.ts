@@ -91,13 +91,13 @@ export enum ApiErrorCode {
 
 export const API_ENDPOINTS = {
   // Auth
-  LOGIN: '/api/auth/login',
-  REGISTER: '/api/auth/register',
-  LOGOUT: '/api/auth/logout',
-  REFRESH: '/api/auth/refresh',
-  PROFILE: '/api/auth/profile',
-  SEND_SMS: '/api/auth/send-sms',
-  VERIFY_SMS: '/api/auth/verify-sms',
+  LOGIN: '/api/v1/auth/login',
+  REGISTER: '/api/v1/auth/register',
+  LOGOUT: '/api/v1/auth/logout',
+  REFRESH: '/api/v1/auth/refresh',
+  PROFILE: '/api/v1/auth/profile',
+  SEND_SMS: '/api/v1/auth/send-sms',
+  VERIFY_SMS: '/api/v1/auth/verify-sms',
   
   // Users
   USERS: '/api/users',
@@ -118,12 +118,12 @@ export const API_ENDPOINTS = {
   MENU_OPTION_GROUP_BY_ID: (id: string) => `/api/menu-option-groups/${id}`,
   
   // Orders
-  ORDERS: '/api/orders',
-  ORDER_BY_ID: (id: string) => `/api/orders/${id}`,
-  ORDER_BY_NUMBER: (orderNumber: string) => `/api/orders/number/${orderNumber}`,
-  ORDER_STATUS: (id: string) => `/api/orders/${id}/status`,
-  ORDER_PAYMENT: (id: string) => `/api/orders/${id}/payment`,
-  MY_ORDERS: '/api/orders/my-orders',
+  ORDERS: '/api/v1/orders',
+  ORDER_BY_ID: (id: string) => `/api/v1/orders/${id}`,
+  ORDER_BY_NUMBER: (orderNumber: string) => `/api/v1/orders/number/${orderNumber}`,
+  ORDER_STATUS: (id: string) => `/api/v1/orders/${id}/status`,
+  ORDER_PAYMENT: (id: string) => `/api/v1/orders/${id}/payment`,
+  MY_ORDERS: '/api/v1/orders/my-orders',
   
   // Payment
   CREATE_PAYMENT_INTENT: '/api/payment/create-intent',
@@ -136,9 +136,9 @@ export const API_ENDPOINTS = {
   POPULAR_ITEMS: '/api/analytics/popular-items',
   
   // Public
-  PUBLIC_MENU: '/api/public/menu',
-  PUBLIC_CATEGORIES: '/api/public/categories',
-  TRACK_ORDER: '/api/public/track-order'
+  PUBLIC_MENU: '/api/v1/public/menu',
+  PUBLIC_CATEGORIES: '/api/v1/public/categories',
+  TRACK_ORDER: '/api/v1/public/track-order'
 } as const
 
 // ============================================

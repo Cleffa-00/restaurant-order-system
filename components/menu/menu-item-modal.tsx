@@ -3,15 +3,14 @@
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { X } from "lucide-react"
-import { formatCurrency } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
+import { formatCurrency, cn } from "@/lib/utils/common"
+import { Button } from "@/components/ui/forms/button"
+import { Textarea } from "@/components/ui/forms/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/forms/radio-group"
+import { Label } from "@/components/ui/forms/label"
 import { useCart } from "@/contexts/cart-context"
-import { cn } from "@/lib/utils"
 import { MenuItemWithDetails } from "@/types"
-import { QuantitySelector } from "@/components/ui/quantity-selector"
+import { QuantitySelector } from "@/components/ui/forms/quantity-selector"
 
 interface SelectedOption {
   optionId: string

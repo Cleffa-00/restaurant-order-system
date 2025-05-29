@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/forms/button"
 import { useToast } from "@/hooks/use-toast"
 
 interface EmptyCartNoticeProps {

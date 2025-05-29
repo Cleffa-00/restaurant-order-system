@@ -1,7 +1,7 @@
 // lib/hooks/admin/useMenuItems.ts
 import { useState, useEffect } from 'react'
 import { AdminMenuItem, CreateMenuItemRequest, UpdateMenuItemRequest } from '@/types/admin'
-import * as menuItemsApi from '@/lib/api/admin/menu-items'
+import * as menuItemsApi from '@/lib/api/client/admin/menu-items'
 
 // UpdateMenuItemRequest 现在已经包含了 optionGroups，不需要扩展类型
 

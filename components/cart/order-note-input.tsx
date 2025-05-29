@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { Textarea } from "@/components/ui/textarea"
+import { Textarea } from "@/components/ui/forms/textarea"
 import { useToast } from "@/hooks/use-toast"
 
 interface OrderNoteInputProps {

@@ -1,8 +1,8 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/forms/button"
 import { Loader2, CheckCircle, ShoppingCart } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/common"
 
 interface CheckoutSubmitButtonProps {
   total: number

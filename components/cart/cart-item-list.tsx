@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { CartItemCard } from "./cart-item-card"
-import { CartItem } from "@/lib/utils/cart"
+import { CartItem } from "@/lib/utils/common/cart"
 
 interface CartItemListProps {
   items: CartItem[]

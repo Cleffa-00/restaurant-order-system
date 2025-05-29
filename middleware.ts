@@ -1,7 +1,7 @@
 // middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyAccessToken, verifyRefreshToken, generateTokenPair } from '@/lib/auth'
+import { verifyAccessToken, verifyRefreshToken, generateTokenPair } from '@/lib/api/services/auth'
 import { Role } from '@/types'
 
 export async function middleware(request: NextRequest) {
@@ -45,7 +45,7 @@ export async function middleware(request: NextRequest) {
           // console.log('✅ Refresh token valid, generating new access token...')
           
           // 使用内部API调用来刷新token（避免Prisma在middleware中的问题）
-          const refreshResponse = await fetch(new URL('/api/auth/refresh', request.url), {
+          const refreshResponse = await fetch(new URL('/api/v1/auth/refresh', request.url), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken })

@@ -168,3 +168,12 @@ pnpm dev               # http://localhost:3000
 ---
 
 > *Happy hacking & bon appétit!* 🍽️
+
+
+
+
+# 这些看起来有重复，检查并合并
+- next.config.js 和 next.config.mjs
+- postcss.config.js 和 postcss.config.mjs
+- tailwind.config.js 和 tailwind.config.ts
+- styles/globals.css 和 app/globals.css

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/forms/button"
 import { Plus } from "lucide-react"
 import { CategoryItem } from "./CategoryItem"
 import { AddCategoryModal } from "./AddCategoryModal"

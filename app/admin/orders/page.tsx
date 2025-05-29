@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { AdminTopbar } from "@/components/admin/AdminTopbar"
 import { OrderGrid } from "@/components/admin/orders/OrderGrid"
 import { OrderDateFilter } from "@/components/admin/orders/OrderDateFilter"
-import { getOrdersByDate } from "@/lib/api/orders"
+import { getOrdersByDate } from "@/lib/api/client/orders"
 import { getEasternDateString, getTodayEasternDateString } from "@/lib/utils/date-utils"
 import type { Order } from "@/types/order"
 

@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/layout/card"
+import { Separator } from "@/components/ui/layout/separator"
 import { ShoppingBag, Info } from "lucide-react"
 
 interface OrderItem {

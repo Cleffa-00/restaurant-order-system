@@ -3,12 +3,11 @@
 import type React from "react"
 import { useState, useRef } from "react"
 import Image from "next/image"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, cn } from "@/lib/utils/common"
 import { useCart } from "@/contexts/cart-context"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { QuantitySelector } from "@/components/ui/quantity-selector"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/forms/button"
+import { Card } from "@/components/ui/layout/card"
+import { QuantitySelector } from "@/components/ui/forms/quantity-selector"
 import { MenuItemWithDetails } from "@/types"
 
 interface MenuCardProps {

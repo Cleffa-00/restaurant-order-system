@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { formatCurrency } from "@/lib/utils/cart"
+import { Button } from "@/components/ui/forms/button"
+import { formatCurrency } from "@/lib/utils/common"
 import { useToast } from "@/hooks/use-toast"
 import { ShoppingCart, Loader2 } from "lucide-react"
 

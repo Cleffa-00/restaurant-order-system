@@ -55,7 +55,7 @@ export default function AdminOrdersPage() {
       }
 
       // Socket.IO server URL (without /socket.io path, it's automatic)
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
+      const socketUrl = process.env.SOCKET_SERVER_URL || 'http://localhost:3001'
       console.log('🔌 Connecting to Socket.IO server:', socketUrl)
       
       const socket = io(socketUrl, {

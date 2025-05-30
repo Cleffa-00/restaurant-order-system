@@ -45,6 +45,53 @@ interface ExtendedCreateOrderItemOptionRequest {
   groupNameSnapshot?: string
 }
 
+// 🆕 发送订单更新到WebSocket服务器的函数
+async function notifyOrderUpdate(type: 'ORDER_CREATED' | 'ORDER_UPDATED' | 'ORDER_DELETED', orderData: any, orderDate?: string) {
+  try {
+    const socketServerUrl = process.env.SOCKET_SERVER_URL || 'http://localhost:3001';
+    
+    // 获取订单日期 (YYYY-MM-DD格式)
+    const orderDateStr = orderDate || new Date(orderData.createdAt || new Date()).toISOString().split('T')[0];
+    
+    console.log(`📡 发送订单更新通知: ${type} - ${orderData.orderNumber || orderData.id} - ${orderDateStr}`);
+    
+    const notificationData = {
+      type: type,
+      order: type === 'ORDER_DELETED' ? undefined : orderData,
+      orderId: orderData.id,
+      date: orderDateStr
+    };
+
+    const response = await fetch(`${socketServerUrl}/api/orders/update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(notificationData),
+      signal: AbortSignal.timeout(3000) // 3秒超时
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log(`✅ 订单更新通知发送成功: ${result.message} (${result.adminClientCount} 个管理端客户端)`);
+      return { success: true, result };
+    } else {
+      const errorText = await response.text();
+      throw new Error(`WebSocket服务器响应错误: ${response.status} - ${errorText}`);
+    }
+    
+  } catch (error) {
+    // WebSocket通知失败不应该影响API操作
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`❌ 发送订单更新通知失败: ${errorMessage}`);
+    
+    return {
+      success: false,
+      error: errorMessage
+    };
+  }
+}
+
 // 发送订单到打印机的函数
 async function sendOrderToPrinter(order: any) {
   try {
@@ -487,11 +534,21 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ 订单创建成功:', orderNumber);
 
-    // 🆕 订单创建成功后，异步发送到打印机
+    // 🆕 订单创建成功后，异步发送WebSocket通知和打印任务
     setImmediate(async () => {
+      console.log('📡 开始发送订单通知...');
+      
+      // 发送WebSocket实时更新通知
+      const notifyResult = await notifyOrderUpdate('ORDER_CREATED', order);
+      if (notifyResult.success) {
+        console.log('✅ 订单创建通知发送成功');
+      } else {
+        console.log(`⚠️ 订单创建通知发送失败: ${notifyResult.error}`);
+      }
+      
+      // 发送到打印机
       console.log('🖨️ 开始发送订单到打印机...');
       const printResult = await sendOrderToPrinter(order);
-      
       if (printResult.success) {
         console.log(`✅ 打印任务发送成功: ${printResult.message}`);
       } else {
@@ -499,7 +556,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // 返回订单创建结果（不等待打印完成）
+    // 返回订单创建结果（不等待通知和打印完成）
     return NextResponse.json(
       ApiResponseBuilder.success(
         {
@@ -598,6 +655,219 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ 获取订单列表时出错:', error);
+    return NextResponse.json(
+      ApiResponseBuilder.error(
+        ERROR_MESSAGES.SERVER_ERROR,
+        'INTERNAL_SERVER_ERROR',
+        API_RESPONSE_CODES.INTERNAL_SERVER_ERROR
+      ),
+      { status: API_RESPONSE_CODES.INTERNAL_SERVER_ERROR }
+    )
+  }
+}
+
+// 🆕 更新订单状态（新增PUT方法）
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { orderId, status, paymentStatus } = body
+
+    if (!orderId) {
+      return NextResponse.json(
+        ApiResponseBuilder.error(
+          'Order ID is required',
+          'MISSING_ORDER_ID',
+          API_RESPONSE_CODES.BAD_REQUEST
+        ),
+        { status: API_RESPONSE_CODES.BAD_REQUEST }
+      )
+    }
+
+    // 验证状态值
+    if (status && !Object.values(OrderStatus).includes(status)) {
+      return NextResponse.json(
+        ApiResponseBuilder.error(
+          'Invalid order status',
+          'INVALID_STATUS',
+          API_RESPONSE_CODES.BAD_REQUEST,
+          { validStatuses: Object.values(OrderStatus) }
+        ),
+        { status: API_RESPONSE_CODES.BAD_REQUEST }
+      )
+    }
+
+    if (paymentStatus && !Object.values(PaymentStatus).includes(paymentStatus)) {
+      return NextResponse.json(
+        ApiResponseBuilder.error(
+          'Invalid payment status',
+          'INVALID_PAYMENT_STATUS',
+          API_RESPONSE_CODES.BAD_REQUEST,
+          { validStatuses: Object.values(PaymentStatus) }
+        ),
+        { status: API_RESPONSE_CODES.BAD_REQUEST }
+      )
+    }
+
+    // 构建更新数据
+    const updateData: any = {}
+    if (status) updateData.status = status
+    if (paymentStatus) updateData.paymentStatus = paymentStatus
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        ApiResponseBuilder.error(
+          'No valid fields to update',
+          'NO_UPDATE_FIELDS',
+          API_RESPONSE_CODES.BAD_REQUEST
+        ),
+        { status: API_RESPONSE_CODES.BAD_REQUEST }
+      )
+    }
+
+    // 更新订单
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: updateData,
+      include: {
+        items: {
+          include: {
+            options: {
+              include: {
+                menuOption: true
+              }
+            },
+            menuItem: true
+          }
+        }
+      }
+    })
+
+    console.log(`✅ 订单状态更新成功: ${updatedOrder.orderNumber} - ${status || paymentStatus}`);
+
+    // 🆕 异步发送WebSocket通知
+    setImmediate(async () => {
+      const notifyResult = await notifyOrderUpdate('ORDER_UPDATED', updatedOrder);
+      if (notifyResult.success) {
+        console.log('✅ 订单更新通知发送成功');
+      } else {
+        console.log(`⚠️ 订单更新通知发送失败: ${notifyResult.error}`);
+      }
+    });
+
+    return NextResponse.json(
+      ApiResponseBuilder.success(
+        updatedOrder,
+        'Order updated successfully'
+      )
+    )
+
+  } catch (error) {
+    console.error('❌ 更新订单时出错:', error);
+
+    if (error instanceof Error && error.message.includes('Record to update not found')) {
+      return NextResponse.json(
+        ApiResponseBuilder.error(
+          'Order not found',
+          'ORDER_NOT_FOUND',
+          API_RESPONSE_CODES.NOT_FOUND
+        ),
+        { status: API_RESPONSE_CODES.NOT_FOUND }
+      )
+    }
+
+    return NextResponse.json(
+      ApiResponseBuilder.error(
+        ERROR_MESSAGES.SERVER_ERROR,
+        'INTERNAL_SERVER_ERROR',
+        API_RESPONSE_CODES.INTERNAL_SERVER_ERROR
+      ),
+      { status: API_RESPONSE_CODES.INTERNAL_SERVER_ERROR }
+    )
+  }
+}
+
+// 🆕 删除订单（新增DELETE方法）
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const orderId = searchParams.get('orderId')
+
+    if (!orderId) {
+      return NextResponse.json(
+        ApiResponseBuilder.error(
+          'Order ID is required',
+          'MISSING_ORDER_ID',
+          API_RESPONSE_CODES.BAD_REQUEST
+        ),
+        { status: API_RESPONSE_CODES.BAD_REQUEST }
+      )
+    }
+
+    // 先获取订单信息（用于WebSocket通知）
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, orderNumber: true, createdAt: true }
+    })
+
+    if (!existingOrder) {
+      return NextResponse.json(
+        ApiResponseBuilder.error(
+          'Order not found',
+          'ORDER_NOT_FOUND',
+          API_RESPONSE_CODES.NOT_FOUND
+        ),
+        { status: API_RESPONSE_CODES.NOT_FOUND }
+      )
+    }
+
+    // 删除订单及其相关数据
+    await prisma.$transaction(async (tx) => {
+      // 删除订单项选项
+      await tx.orderItemOption.deleteMany({
+        where: {
+          orderItem: {
+            orderId: orderId
+          }
+        }
+      })
+
+      // 删除订单项
+      await tx.orderItem.deleteMany({
+        where: { orderId: orderId }
+      })
+
+      // 删除订单
+      await tx.order.delete({
+        where: { id: orderId }
+      })
+    })
+
+    console.log(`✅ 订单删除成功: ${existingOrder.orderNumber}`);
+
+    // 🆕 异步发送WebSocket通知
+    setImmediate(async () => {
+      const notifyResult = await notifyOrderUpdate('ORDER_DELETED', existingOrder);
+      if (notifyResult.success) {
+        console.log('✅ 订单删除通知发送成功');
+      } else {
+        console.log(`⚠️ 订单删除通知发送失败: ${notifyResult.error}`);
+      }
+    });
+
+    return NextResponse.json(
+      ApiResponseBuilder.success(
+        { 
+          orderId, 
+          orderNumber: existingOrder.orderNumber,
+          deletedAt: new Date().toISOString()
+        },
+        'Order deleted successfully'
+      )
+    )
+
+  } catch (error) {
+    console.error('❌ 删除订单时出错:', error);
+
     return NextResponse.json(
       ApiResponseBuilder.error(
         ERROR_MESSAGES.SERVER_ERROR,

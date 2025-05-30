@@ -57,7 +57,7 @@ export default function AdminOrdersPage() {
       // Socket.IO server URL with environment detection
       const isDevelopment = process.env.NODE_ENV === 'development'
       const defaultUrl = isDevelopment ? 'http://localhost:3001' : 'https://your-websocket-server.com'
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || defaultUrl
+      const socketUrl = process.env.SOCKET_SERVER_URL || defaultUrl
       
       console.log('🔌 Connecting to Socket.IO server:')
       console.log('- URL:', socketUrl)

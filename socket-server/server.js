@@ -5,9 +5,46 @@ const cors = require('cors');
 
 const app = express();
 
+// 动态 CORS 配置 - 支持 Vercel 部署
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  // Vercel 部署的域名 - 根据实际情况修改
+  'https://*.vercel.app',
+  'https://your-restaurant-app.vercel.app', // 替换为你的实际 Vercel 域名
+  // 如果有自定义域名
+  'https://your-custom-domain.com',
+  // 从环境变量读取
+  process.env.FRONTEND_URL,
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : [])
+].filter(Boolean);
+
 // 中间件配置
 app.use(cors({
-  origin: "*",
+  origin: function (origin, callback) {
+    // 允许没有 origin 的请求（比如 Postman 或服务器端请求）
+    if (!origin) return callback(null, true);
+    
+    // 检查是否是 Vercel 预览部署
+    if (origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // 检查白名单
+    if (allowedOrigins.some(allowed => {
+      if (allowed.includes('*')) {
+        // 支持通配符
+        const regex = new RegExp(allowed.replace('*', '.*'));
+        return regex.test(origin);
+      }
+      return allowed === origin;
+    })) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ["GET", "POST"],
   credentials: true
 }));
@@ -17,6 +54,7 @@ app.use(express.json());
 // 添加请求日志
 app.use((req, res, next) => {
   console.log(`📨 ${req.method} ${req.url} - ${new Date().toLocaleTimeString()}`);
+  console.log('Origin:', req.headers.origin);
   next();
 });
 
@@ -28,10 +66,34 @@ server.setMaxListeners(20);
 
 const io = socketIo(server, {
   cors: {
-    origin: "*",
+    origin: function (origin, callback) {
+      // 允许没有 origin 的请求
+      if (!origin) return callback(null, true);
+      
+      // 检查是否是 Vercel 部署
+      if (origin.includes('.vercel.app')) {
+        return callback(null, true);
+      }
+      
+      // 检查白名单
+      if (allowedOrigins.some(allowed => {
+        if (allowed.includes('*')) {
+          const regex = new RegExp(allowed.replace('*', '.*'));
+          return regex.test(origin);
+        }
+        return allowed === origin;
+      })) {
+        callback(null, true);
+      } else {
+        console.log('❌ Socket.IO CORS blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  // 允许所有传输方式
+  transports: ['polling', 'websocket']
 });
 
 // 存储连接的打印机
@@ -45,6 +107,7 @@ let isShuttingDown = false;
 // Socket.io 连接处理
 io.on('connection', (socket) => {
   console.log('🔗 新客户端连接:', socket.id);
+  console.log('Transport:', socket.conn.transport.name);
 
   // =============================================================================
   // 打印机相关事件
@@ -175,6 +238,7 @@ app.get('/', (req, res) => {
     message: '🏪 餐厅打印&管理系统 Socket 服务器',
     status: 'running',
     version: '2.0.0',
+    environment: process.env.NODE_ENV || 'production',
     endpoints: {
       health: '/health',
       printers: '/api/printers',
@@ -452,17 +516,18 @@ app.use('*', (req, res) => {
 });
 
 // 启动服务器
-const PORT = process.env.SOCKET_PORT || 3001;
+// Render 会设置 PORT 环境变量
+const PORT = process.env.PORT || process.env.SOCKET_PORT || 3001;
 
 server.listen(PORT, () => {
   console.log('🚀 ================================');
   console.log(`🏪 餐厅打印&管理系统 Socket 服务器启动成功`);
   console.log(`📡 端口: ${PORT}`);
-  console.log(`🔗 WebSocket: ws://localhost:${PORT}`);
-  console.log(`🌐 健康检查: http://localhost:${PORT}/health`);
-  console.log(`🖨️ 打印机管理: http://localhost:${PORT}/api/printers`);
-  console.log(`📊 管理端连接: http://localhost:${PORT}/api/admin-clients`);
-  console.log(`📡 订单更新: POST http://localhost:${PORT}/api/orders/update`);
+  console.log(`🔗 环境: ${process.env.NODE_ENV || 'production'}`);
+  console.log(`🌐 健康检查: /health`);
+  console.log(`🖨️ 打印机管理: /api/printers`);
+  console.log(`📊 管理端连接: /api/admin-clients`);
+  console.log(`📡 订单更新: POST /api/orders/update`);
   console.log('🚀 ================================');
 });
 

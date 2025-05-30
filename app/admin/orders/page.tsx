@@ -54,25 +54,38 @@ export default function AdminOrdersPage() {
         socketRef.current = null
       }
 
-      // Socket.IO server URL with environment detection
-      const isDevelopment = process.env.NODE_ENV === 'development'
-      const defaultUrl = isDevelopment ? 'http://localhost:3001' : process.env.SOCKET_SERVER_URL
-      const socketUrl = process.env.SOCKET_SERVER_URL || defaultUrl
+      // Socket.IO server URL configuration
+      const getSocketUrl = () => {
+        // 优先使用环境变量
+        if (process.env.NEXT_PUBLIC_SOCKET_SERVER_URL) {
+          return process.env.NEXT_PUBLIC_SOCKET_SERVER_URL
+        }
+        
+        // 开发环境
+        if (process.env.NODE_ENV === 'development') {
+          return 'http://localhost:3001'
+        }
+        
+        // 生产环境 - 使用 Render 部署的 URL
+        return 'https://restaurant-socket-server.onrender.com'
+      }
+      
+      const socketUrl = getSocketUrl()
       
       console.log('🔌 Connecting to Socket.IO server:')
       console.log('- URL:', socketUrl)
       console.log('- Environment:', process.env.NODE_ENV)
-      console.log('- isDevelopment:', isDevelopment)
       
       const socket = io(socketUrl, {
-        transports: ['websocket', 'polling'], // Allow fallback to polling
-        timeout: 10000, // 增加超时时间
+        transports: ['polling', 'websocket'], // 先使用 polling，然后升级到 websocket
+        timeout: 20000, // 增加超时时间
         forceNew: true,
         autoConnect: true,
-        // 添加重连配置
+        // 重连配置
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 5 // 修复：移除 maxReconnectionAttempts，使用正确的属性名
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 10
       })
       
       socket.on('connect', () => {
@@ -158,7 +171,7 @@ export default function AdminOrdersPage() {
         if (error.message.includes('CORS')) {
           errorMessage = 'CORS error - check server configuration'
         } else if (error.message.includes('timeout')) {
-          errorMessage = 'Connection timeout'
+          errorMessage = 'Connection timeout - server may be starting up'
         } else if (error.message.includes('refused')) {
           errorMessage = 'Connection refused - server may be offline'
         }
@@ -172,14 +185,10 @@ export default function AdminOrdersPage() {
       })
 
       // 监听传输升级
-      socket.on('upgrade', () => {
+      socket.io.engine.on('upgrade', () => {
         console.log('📈 Socket.IO upgraded to websocket')
       })
-
-      // 监听传输降级
-      socket.on('upgradeError', (error) => {
-        console.log('📉 Socket.IO upgrade error, falling back to polling:', error)
-      })
+      
 
       socketRef.current = socket
       
@@ -267,7 +276,7 @@ export default function AdminOrdersPage() {
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
                     socketConnected ? 'bg-green-500' : 'bg-red-500'
-                  }`} />
+                  } animate-pulse`} />
                   <span className="text-xs text-gray-500">
                     {socketConnected ? 'Live' : socketError || 'Disconnected'}
                   </span>

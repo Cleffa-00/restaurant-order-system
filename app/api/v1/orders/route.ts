@@ -1,4 +1,4 @@
-// app/api/v1/orders/route.ts
+// app/api/v0/orders/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { 
@@ -43,6 +43,108 @@ interface ExtendedCreateOrderItemOptionRequest {
   priceDelta: number
   optionNameSnapshot?: string
   groupNameSnapshot?: string
+}
+
+// 发送订单到打印机的函数
+async function sendOrderToPrinter(order: any) {
+  try {
+    const socketServerUrl = process.env.SOCKET_SERVER_URL || 'http://localhost:3001';
+    
+    console.log('🖨️ 准备发送订单到打印机:', order.orderNumber);
+    
+    // 格式化订单数据为打印机需要的格式
+    const printOrderData = {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.name,
+      customerPhone: order.phone,
+      items: order.items?.map((item: any) => ({
+        name: item.nameSnapshot || item.menuItem?.name || '未知商品',
+        quantity: item.quantity,
+        price: item.finalPrice,
+        unitPrice: item.unitPrice,
+        note: item.note,
+        selectedOptions: item.options?.map((opt: any) => ({
+          name: opt.optionNameSnapshot || opt.menuOption?.name || '未知选项',
+          groupName: opt.groupNameSnapshot || opt.menuOption?.optionGroup?.name,
+          priceDelta: opt.priceDelta,
+          quantity: opt.quantity
+        })) || []
+      })) || [],
+      totalAmount: order.total,
+      subtotal: order.subtotal,
+      taxAmount: order.taxAmount,
+      serviceFee: order.serviceFee,
+      customerNote: order.customerNote,
+      orderSource: order.orderSource,
+      createdAt: order.createdAt,
+      status: order.status
+    };
+
+    console.log('📤 发送数据到:', `${socketServerUrl}/api/orders/print`);
+
+    const response = await fetch(`${socketServerUrl}/api/orders/print`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(printOrderData),
+      // 设置 5 秒超时，避免阻塞订单创建
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ 订单已成功发送到打印机:', {
+        orderNumber: order.orderNumber,
+        printerCount: result.printerCount,
+        message: result.message
+      });
+      
+      return {
+        success: true,
+        printerCount: result.printerCount,
+        message: result.message
+      };
+    } else {
+      const errorText = await response.text();
+      throw new Error(`打印机服务器响应错误: ${response.status} - ${errorText}`);
+    }
+    
+  } catch (error) {
+    // 打印失败不应该影响订单创建
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error('❌ 发送到打印机失败:', errorMessage);
+    
+    // 这里可以选择记录到数据库，用于后续重试
+    // await logPrintFailure(order.id, errorMessage);
+    
+    return {
+      success: false,
+      error: errorMessage
+    };
+  }
+}
+
+// 记录打印失败的函数（可选）
+async function logPrintFailure(orderId: string, errorMessage: string) {
+  try {
+    // 如果你的数据库有相关字段，可以记录打印失败状态
+    console.log(`📝 记录打印失败: 订单 ${orderId} - ${errorMessage}`);
+    
+    // 示例：如果你有 printStatus 字段
+    // await prisma.order.update({
+    //   where: { id: orderId },
+    //   data: {
+    //     printStatus: 'FAILED',
+    //     printError: errorMessage,
+    //     printAttemptAt: new Date()
+    //   }
+    // });
+    
+  } catch (dbError) {
+    console.error('❌ 记录打印失败状态时出错:', dbError);
+  }
 }
 
 // 生成订单号
@@ -222,21 +324,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 添加调试日志（生产环境可移除）
-    // console.log('Received order data:', {
-    //   hasPhone: !!body.phone,
-    //   hasName: !!body.name,
-    //   itemCount: body.items?.length || 0,
-    //   subtotal: body.subtotal,
-    //   total: body.total,
-    //   orderSource: body.orderSource
-    // })
+    console.log('📝 收到订单创建请求:', {
+      customerName: body.name,
+      itemCount: body.items?.length || 0,
+      total: body.total
+    });
 
     // 验证请求数据
     const validation = validateOrderData(body)
 
     if (!validation.isValid) {
-      // console.log('Validation failed:', validation.errors)
+      console.log('❌ 订单验证失败:', validation.errors);
       return NextResponse.json(
         ApiResponseBuilder.error(
           'Validation failed',
@@ -387,12 +485,37 @@ export async function POST(request: NextRequest) {
       })
     })
 
+    console.log('✅ 订单创建成功:', orderNumber);
+
+    // 🆕 订单创建成功后，异步发送到打印机
+    setImmediate(async () => {
+      console.log('🖨️ 开始发送订单到打印机...');
+      const printResult = await sendOrderToPrinter(order);
+      
+      if (printResult.success) {
+        console.log(`✅ 打印任务发送成功: ${printResult.message}`);
+      } else {
+        console.log(`⚠️ 打印任务发送失败: ${printResult.error}`);
+      }
+    });
+
+    // 返回订单创建结果（不等待打印完成）
     return NextResponse.json(
-      ApiResponseBuilder.success(order, SUCCESS_MESSAGES.ORDER_CREATED),
+      ApiResponseBuilder.success(
+        {
+          ...order,
+          printInfo: {
+            message: '订单已创建，正在发送到打印机...',
+            socketServerUrl: process.env.SOCKET_SERVER_URL || 'http://localhost:3001'
+          }
+        }, 
+        SUCCESS_MESSAGES.ORDER_CREATED
+      ),
       { status: API_RESPONSE_CODES.CREATED }
     )
 
   } catch (error) {
+    console.error('❌ 订单创建过程中出错:', error);
 
     // 处理已知的错误类型
     if (error instanceof Error) {
@@ -474,6 +597,7 @@ export async function GET(request: NextRequest) {
     )
 
   } catch (error) {
+    console.error('❌ 获取订单列表时出错:', error);
     return NextResponse.json(
       ApiResponseBuilder.error(
         ERROR_MESSAGES.SERVER_ERROR,

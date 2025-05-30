@@ -57,7 +57,7 @@ export default function AdminOrdersPage() {
       // Socket.IO server URL configuration
       const getSocketUrl = () => {
         // 优先使用环境变量
-        if (process.env.NEXT_PUBLIC_SOCKET_SERVER_URL) {
+        if (process.env.Socket) {
           return process.env.NEXT_PUBLIC_SOCKET_SERVER_URL
         }
         

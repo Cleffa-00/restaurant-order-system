@@ -48,7 +48,7 @@ interface ExtendedCreateOrderItemOptionRequest {
 // 🆕 发送订单更新到WebSocket服务器的函数
 async function notifyOrderUpdate(type: 'ORDER_CREATED' | 'ORDER_UPDATED' | 'ORDER_DELETED', orderData: any, orderDate?: string) {
   try {
-    const socketServerUrl = process.env.SOCKET_SERVER_URL || 'http://localhost:3001';
+    const socketServerUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'http://localhost:3001';
     
     // 获取订单日期 (YYYY-MM-DD格式)
     const orderDateStr = orderDate || new Date(orderData.createdAt || new Date()).toISOString().split('T')[0];
@@ -95,7 +95,7 @@ async function notifyOrderUpdate(type: 'ORDER_CREATED' | 'ORDER_UPDATED' | 'ORDE
 // 发送订单到打印机的函数
 async function sendOrderToPrinter(order: any) {
   try {
-    const socketServerUrl = process.env.SOCKET_SERVER_URL || 'http://localhost:3001';
+    const socketServerUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'http://localhost:3001';
     
     console.log('🖨️ 准备发送订单到打印机:', order.orderNumber);
     
@@ -563,7 +563,7 @@ export async function POST(request: NextRequest) {
           ...order,
           printInfo: {
             message: '订单已创建，正在发送到打印机...',
-            socketServerUrl: process.env.SOCKET_SERVER_URL || 'http://localhost:3001'
+            socketServerUrl: process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || 'http://localhost:3001'
           }
         }, 
         SUCCESS_MESSAGES.ORDER_CREATED

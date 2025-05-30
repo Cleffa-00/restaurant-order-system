@@ -9,8 +9,17 @@ interface OrderCardProps {
 }
 
 export function OrderCard({ order, onClick }: OrderCardProps) {
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`
+  const formatCurrency = (amount: number | string | null | undefined) => {
+    // 安全地转换为数字
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : (amount || 0)
+    
+    // 检查是否为有效数字
+    if (isNaN(numAmount)) {
+      console.warn('Invalid amount for order:', order.id, 'amount:', amount)
+      return '$0.00'
+    }
+    
+    return `$${numAmount.toFixed(2)}`
   }
 
   const getCardBackground = (paymentStatus: string) => {

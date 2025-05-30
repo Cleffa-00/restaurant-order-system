@@ -8,16 +8,8 @@ import { getOrdersByDate } from "@/lib/api/client/orders"
 import { getEasternDateString, getTodayEasternDateString } from "@/lib/utils/date-utils"
 import type { Order } from "@/types/order"
 
-// WebSocket message types
-interface WebSocketMessage {
-  type: 'ORDER_CREATED' | 'ORDER_UPDATED' | 'ORDER_DELETED' | 'CONNECTION_STATUS'
-  data: {
-    order?: Order
-    orderId?: string
-    date?: string
-    message?: string
-  }
-}
+// 动态导入 socket.io-client
+import { io, Socket } from 'socket.io-client'
 
 export default function AdminOrdersPage() {
   // Initialize with today's date in Eastern Time
@@ -26,10 +18,10 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
-  // WebSocket state
-  const [wsConnected, setWsConnected] = useState(false)
-  const [wsError, setWsError] = useState<string | null>(null)
-  const wsRef = useRef<WebSocket | null>(null)
+  // Socket.IO state
+  const [socketConnected, setSocketConnected] = useState(false)
+  const [socketError, setSocketError] = useState<string | null>(null)
+  const socketRef = useRef<Socket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Extract fetchOrders function so it can be called directly
@@ -53,120 +45,135 @@ export default function AdminOrdersPage() {
     }
   }, [selectedDate])
 
-  // WebSocket connection management
-  const connectWebSocket = useCallback(() => {
+  // Socket.IO connection management
+  const connectSocket = useCallback(() => {
     try {
-      // Replace with your WebSocket URL
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001/orders'
-      const ws = new WebSocket(wsUrl)
+      // Clean up existing connection
+      if (socketRef.current) {
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
+
+      // Socket.IO server URL (without /socket.io path, it's automatic)
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'
+      console.log('🔌 Connecting to Socket.IO server:', socketUrl)
       
-      ws.onopen = () => {
-        console.log('🔌 WebSocket connected')
-        setWsConnected(true)
-        setWsError(null)
+      const socket = io(socketUrl, {
+        transports: ['websocket', 'polling'], // Allow fallback to polling
+        timeout: 5000,
+        forceNew: true
+      })
+      
+      socket.on('connect', () => {
+        console.log('🔌 Socket.IO connected successfully')
+        console.log('- Socket ID:', socket.id)
+        setSocketConnected(true)
+        setSocketError(null)
         
         // Subscribe to order updates for the selected date
-        ws.send(JSON.stringify({
-          type: 'SUBSCRIBE_ORDERS',
-          data: { date: selectedDate }
-        }))
-      }
+        console.log('📡 Subscribing to orders for date:', selectedDate)
+        socket.emit('subscribe-orders', { date: selectedDate })
+      })
 
-      ws.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data)
-          console.log('📨 WebSocket message:', message)
-          
-          // Only process messages for the currently selected date
-          if (message.data.date && message.data.date !== selectedDate) {
-            return
-          }
+      socket.on('subscription-confirmed', (data) => {
+        console.log('✅ Subscription confirmed:', data)
+      })
 
-          switch (message.type) {
-            case 'ORDER_CREATED':
-              if (message.data.order) {
-                setOrders(prevOrders => [...prevOrders, message.data.order!])
-                console.log('➕ New order added via WebSocket')
-              }
-              break
-              
-            case 'ORDER_UPDATED':
-              if (message.data.order) {
-                setOrders(prevOrders => 
-                  prevOrders.map(order => 
-                    order.id === message.data.order!.id ? message.data.order! : order
-                  )
-                )
-                console.log('✏️ Order updated via WebSocket')
-              }
-              break
-              
-            case 'ORDER_DELETED':
-              if (message.data.orderId) {
-                setOrders(prevOrders => 
-                  prevOrders.filter(order => order.id !== message.data.orderId)
-                )
-                console.log('🗑️ Order deleted via WebSocket')
-              }
-              break
-              
-            case 'CONNECTION_STATUS':
-              console.log('📡 Connection status:', message.data.message)
-              break
-          }
-        } catch (err) {
-          console.error('❌ Failed to parse WebSocket message:', err)
-        }
-      }
-
-      ws.onclose = (event) => {
-        console.log('🔌 WebSocket disconnected:', event.code, event.reason)
-        setWsConnected(false)
+      socket.on('order-update', (data) => {
+        console.log('📨 Received order update:', data)
         
-        // Attempt to reconnect after 3 seconds if not a manual close
-        if (event.code !== 1000) {
-          setWsError('Connection lost. Reconnecting...')
+        const { type, data: updateData } = data
+        
+        // Only process messages for the currently selected date
+        if (updateData.date && updateData.date !== selectedDate) {
+          console.log('🚫 Ignoring update for different date:', updateData.date)
+          return
+        }
+
+        switch (type) {
+          case 'ORDER_CREATED':
+            if (updateData.order) {
+              setOrders(prevOrders => [...prevOrders, updateData.order])
+              console.log('➕ New order added via Socket.IO:', updateData.order.orderNumber)
+            }
+            break
+            
+          case 'ORDER_UPDATED':
+            if (updateData.order) {
+              setOrders(prevOrders => 
+                prevOrders.map(order => 
+                  order.id === updateData.order.id ? updateData.order : order
+                )
+              )
+              console.log('✏️ Order updated via Socket.IO:', updateData.order.orderNumber)
+            }
+            break
+            
+          case 'ORDER_DELETED':
+            if (updateData.orderId) {
+              setOrders(prevOrders => 
+                prevOrders.filter(order => order.id !== updateData.orderId)
+              )
+              console.log('🗑️ Order deleted via Socket.IO:', updateData.orderId)
+            }
+            break
+        }
+      })
+
+      socket.on('disconnect', (reason) => {
+        console.log('🔌 Socket.IO disconnected:', reason)
+        setSocketConnected(false)
+        
+        if (reason === 'io server disconnect') {
+          // The disconnection was initiated by the server, reconnect manually
+          setSocketError('Server disconnected. Reconnecting...')
           reconnectTimeoutRef.current = setTimeout(() => {
             console.log('🔄 Attempting to reconnect...')
-            connectWebSocket()
+            connectSocket()
           }, 3000)
+        } else {
+          // The disconnection was initiated by the client or network issues
+          setSocketError('Connection lost. Reconnecting...')
         }
-      }
+      })
 
-      ws.onerror = (error) => {
-        console.error('❌ WebSocket error:', error)
-        setWsError('WebSocket connection error')
-      }
+      socket.on('connect_error', (error) => {
+        console.error('❌ Socket.IO connection error:', error)
+        setSocketError(`Connection error: ${error.message}`)
+      })
 
-      wsRef.current = ws
+      socket.on('error', (error) => {
+        console.error('❌ Socket.IO error:', error)
+        setSocketError(`Socket error: ${error}`)
+      })
+
+      socketRef.current = socket
       
     } catch (err) {
-      console.error('❌ Failed to connect WebSocket:', err)
-      setWsError('Failed to establish WebSocket connection')
+      console.error('❌ Failed to create Socket.IO connection:', err)
+      setSocketError('Failed to establish Socket.IO connection: ' + (err instanceof Error ? err.message : 'Unknown error'))
     }
   }, [selectedDate])
 
-  // Initialize WebSocket connection
+  // Initialize Socket.IO connection
   useEffect(() => {
-    connectWebSocket()
+    connectSocket()
     
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
       }
-      if (wsRef.current) {
-        wsRef.current.close(1000, 'Component unmounting')
+      if (socketRef.current) {
+        socketRef.current.disconnect()
       }
     }
-  }, [connectWebSocket])
+  }, [connectSocket])
 
-  // Update WebSocket subscription when date changes
+  // Update Socket.IO subscription when date changes
   useEffect(() => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'SUBSCRIBE_ORDERS',
-        data: { date: selectedDate }
-      }))
+    if (socketRef.current?.connected) {
+      console.log('📅 Updating subscription to date:', selectedDate)
+      socketRef.current.emit('update-subscription', { date: selectedDate })
     }
   }, [selectedDate])
 
@@ -222,13 +229,13 @@ export default function AdminOrdersPage() {
                   )}
                 </p>
                 
-                {/* WebSocket status indicator */}
+                {/* Socket.IO status indicator */}
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${
-                    wsConnected ? 'bg-green-500' : 'bg-red-500'
+                    socketConnected ? 'bg-green-500' : 'bg-red-500'
                   }`} />
                   <span className="text-xs text-gray-500">
-                    {wsConnected ? 'Live' : wsError || 'Disconnected'}
+                    {socketConnected ? 'Live' : socketError || 'Disconnected'}
                   </span>
                 </div>
               </div>

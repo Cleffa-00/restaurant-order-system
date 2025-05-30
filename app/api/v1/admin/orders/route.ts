@@ -65,12 +65,6 @@ export async function GET(request: NextRequest) {
         lte: finalEndDate
       }
       
-      console.log(`🕐 Querying orders for Eastern date ${date}:`, {
-        selectedDate: date,
-        timezone: isDST ? 'EDT (UTC-4)' : 'EST (UTC-5)',
-        utcRange: `${finalStartDate.toISOString()} - ${finalEndDate.toISOString()}`,
-        easternRange: `${date} 00:00:00 - ${date} 23:59:59 Eastern`
-      })
     }
     
     // 状态筛选

@@ -22,6 +22,10 @@ app.use((req, res, next) => {
 
 // 创建 HTTP 服务器和 Socket.io
 const server = http.createServer(app);
+
+// 设置监听器限制以避免警告
+server.setMaxListeners(20);
+
 const io = socketIo(server, {
   cors: {
     origin: "*",
@@ -34,6 +38,9 @@ const io = socketIo(server, {
 const printers = new Map();
 // 存储管理端连接（用于订单实时更新）
 const adminClients = new Map();
+
+// 关闭状态标志
+let isShuttingDown = false;
 
 // Socket.io 连接处理
 io.on('connection', (socket) => {
@@ -459,12 +466,12 @@ server.listen(PORT, () => {
   console.log('🚀 ================================');
 });
 
-// 优雅关闭
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
-
-function shutdown() {
-  console.log('\n🛑 正在关闭服务器...');
+// 改进的优雅关闭处理
+function shutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  
+  console.log(`\n🛑 收到 ${signal} 信号，正在关闭服务器...`);
   
   // 通知所有连接的打印机和管理端
   printers.forEach(printer => {
@@ -483,10 +490,36 @@ function shutdown() {
     }
   });
   
-  server.close(() => {
-    console.log('✅ 服务器已关闭');
-    process.exit(0);
+  // 关闭所有socket连接
+  io.close(() => {
+    console.log('🔌 Socket.IO 已关闭');
+    server.close(() => {
+      console.log('✅ HTTP 服务器已关闭');
+      process.exit(0);
+    });
   });
+  
+  // 强制退出（防止挂起）
+  setTimeout(() => {
+    console.log('⏰ 强制退出');
+    process.exit(1);
+  }, 10000);
 }
+
+// 监听多种关闭信号
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGQUIT', () => shutdown('SIGQUIT'));
+
+// 处理未捕获的异常
+process.on('uncaughtException', (err) => {
+  console.error('💥 未捕获的异常:', err);
+  shutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 未处理的Promise拒绝:', reason);
+  shutdown('UNHANDLED_REJECTION');
+});
 
 // npm install express@4.18.2 socket.io@4 cors@2

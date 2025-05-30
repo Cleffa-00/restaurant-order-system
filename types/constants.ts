@@ -10,7 +10,7 @@ export const TAX_RATE = 0.0875 // 8.75%
 // 服务费规则
 export const SERVICE_FEE = {
   PERCENTAGE: 0.05, // 5%
-  MINIMUM: 0.50    // $0.50
+  MINIMUM: 0.00    // $0.00
 }
 
 // 订单号前缀

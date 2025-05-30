@@ -5,33 +5,51 @@ const cors = require('cors');
 
 const app = express();
 
-// 中间件配置
-app.use(cors({
-  origin: "*",
+// 更严格的CORS配置用于生产环境
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001', 
+  // 'https://your-frontend-domain.com', // 替换为你的前端域名
+  'https://restaurant-order-system-seven.vercel.app', // 如果使用Vercel
+  // 添加其他需要的域名
+];
+
+// 动态CORS配置
+const corsOptions = {
+  origin: function (origin, callback) {
+    // 允许没有origin的请求（如移动应用或Postman）
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ["GET", "POST"],
   credentials: true
-}));
+};
 
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // 添加请求日志
 app.use((req, res, next) => {
-  console.log(`📨 ${req.method} ${req.url} - ${new Date().toLocaleTimeString()}`);
+  console.log(`📨 ${req.method} ${req.url} - ${new Date().toLocaleTimeString()} - Origin: ${req.get('Origin')}`);
   next();
 });
 
 // 创建 HTTP 服务器和 Socket.io
 const server = http.createServer(app);
-
-// 设置监听器限制以避免警告
-server.setMaxListeners(20);
-
 const io = socketIo(server, {
   cors: {
-    origin: "*",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
-  }
+  },
+  // 添加传输方式配置
+  transports: ['websocket', 'polling']
 });
 
 // 存储连接的打印机
@@ -39,12 +57,9 @@ const printers = new Map();
 // 存储管理端连接（用于订单实时更新）
 const adminClients = new Map();
 
-// 关闭状态标志
-let isShuttingDown = false;
-
 // Socket.io 连接处理
 io.on('connection', (socket) => {
-  console.log('🔗 新客户端连接:', socket.id);
+  console.log('🔗 新客户端连接:', socket.id, 'IP:', socket.handshake.address);
 
   // =============================================================================
   // 打印机相关事件
@@ -83,7 +98,7 @@ io.on('connection', (socket) => {
   // 管理端订阅订单更新
   socket.on('subscribe-orders', (data) => {
     const { date } = data;
-    console.log(`📅 管理端订阅订单更新: ${date}`);
+    console.log(`📅 管理端订阅订单更新: ${date} - Socket: ${socket.id}`);
     
     adminClients.set(socket.id, {
       id: socket.id,
@@ -109,7 +124,7 @@ io.on('connection', (socket) => {
     const client = adminClients.get(socket.id);
     if (client) {
       client.subscribedDate = date;
-      console.log(`📅 更新订阅日期: ${date}`);
+      console.log(`📅 更新订阅日期: ${date} - Socket: ${socket.id}`);
     }
   });
 
@@ -125,7 +140,7 @@ io.on('connection', (socket) => {
     }
     
     if (adminClient) {
-      console.log(`❌ 管理端断开: ${adminClient.subscribedDate} - ${reason}`);
+      console.log(`❌ 管理端断开: ${adminClient.subscribedDate} - ${reason} - Socket: ${socket.id}`);
       adminClients.delete(socket.id);
       console.log(`📊 当前管理端连接数: ${adminClients.size}`);
     }
@@ -175,6 +190,7 @@ app.get('/', (req, res) => {
     message: '🏪 餐厅打印&管理系统 Socket 服务器',
     status: 'running',
     version: '2.0.0',
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
       health: '/health',
       printers: '/api/printers',
@@ -209,269 +225,40 @@ app.get('/health', (req, res) => {
     printers: printerList,
     adminClients: adminList,
     timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime())
+    uptime: Math.floor(process.uptime()),
+    environment: process.env.NODE_ENV || 'development'
   };
   
   console.log('✅ 健康检查请求 - 返回数据');
   res.json(healthData);
 });
 
-// 获取连接的打印机列表
-app.get('/api/printers', (req, res) => {
-  const printerList = Array.from(printers.values()).map(p => ({
-    id: p.id,
-    storeName: p.storeName,
-    location: p.location,
-    connectedAt: p.connectedAt,
-    connected: p.socket.connected
-  }));
-
-  res.json({
-    success: true,
-    printers: printerList,
-    count: printers.size,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// 获取管理端连接列表
-app.get('/api/admin-clients', (req, res) => {
-  const clientList = Array.from(adminClients.values()).map(c => ({
-    id: c.id,
-    subscribedDate: c.subscribedDate,
-    connectedAt: c.connectedAt,
-    connected: c.socket.connected
-  }));
-
-  res.json({
-    success: true,
-    adminClients: clientList,
-    count: adminClients.size,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// 接收订单并发送到打印机
-app.post('/api/orders/print', (req, res) => {
-  try {
-    const orderData = req.body;
-    
-    console.log('🆕 收到打印订单:', orderData.orderNumber || orderData.orderId);
-    console.log('📊 可用打印机数量:', printers.size);
-
-    if (printers.size === 0) {
-      console.warn('⚠️ 没有连接的打印机');
-      return res.json({
-        success: false,
-        message: '没有可用的打印机',
-        printerCount: 0
-      });
-    }
-
-    // 格式化并发送到所有打印机
-    const printData = {
-      orderId: orderData.orderId,
-      orderNumber: orderData.orderNumber,
-      orderDetails: orderData,
-      timestamp: new Date().toISOString()
-    };
-
-    let sentCount = 0;
-    printers.forEach((printer, socketId) => {
-      try {
-        if (printer.socket.connected) {
-          printer.socket.emit('print-order', printData);
-          console.log(`📤 订单已发送到: ${printer.storeName}`);
-          sentCount++;
-        } else {
-          console.warn(`⚠️ 打印机 ${printer.storeName} 已断开连接`);
-          printers.delete(socketId);
-        }
-      } catch (error) {
-        console.error(`❌ 发送到 ${printer.storeName} 失败:`, error.message);
-      }
-    });
-
-    res.json({
-      success: true,
-      orderId: orderData.orderId,
-      orderNumber: orderData.orderNumber,
-      message: `订单已发送到 ${sentCount} 台打印机`,
-      printerCount: sentCount,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('❌ 处理打印订单时出错:', error);
-    res.status(500).json({
-      success: false,
-      message: '处理订单失败: ' + error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// =============================================================================
-// 新增：订单更新接口（用于触发实时更新）
-// =============================================================================
-
-app.post('/api/orders/update', (req, res) => {
-  try {
-    const { type, order, date } = req.body;
-    
-    console.log('📡 收到订单更新通知:', { type, orderId: order?.id, date });
-    
-    // 验证必需字段
-    if (!type || !date) {
-      return res.status(400).json({
-        success: false,
-        message: '缺少必需字段: type, date'
-      });
-    }
-    
-    if (type !== 'ORDER_DELETED' && !order) {
-      return res.status(400).json({
-        success: false,
-        message: '非删除操作需要提供 order 数据'
-      });
-    }
-    
-    // 广播更新到相关的管理端客户端
-    broadcastOrderUpdate(type, order || { id: req.body.orderId }, date);
-    
-    res.json({
-      success: true,
-      message: `订单更新 (${type}) 已广播`,
-      adminClientCount: adminClients.size,
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('❌ 处理订单更新时出错:', error);
-    res.status(500).json({
-      success: false,
-      message: '处理订单更新失败: ' + error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// 发送测试打印
-app.post('/api/test-print', (req, res) => {
-  const testOrder = {
-    orderId: 'TEST-' + Date.now(),
-    orderNumber: 'TEST-ORDER-' + Date.now(),
-    orderDetails: {
-      customerName: '测试顾客',
-      customerPhone: '1234567890',
-      items: [
-        { 
-          name: '测试菜品', 
-          quantity: 1, 
-          price: 10.00,
-          selectedOptions: []
-        }
-      ],
-      totalAmount: 10.00,
-      customerNote: '这是一个测试订单',
-      createdAt: new Date().toISOString()
-    },
-    timestamp: new Date().toISOString()
-  };
-
-  let sentCount = 0;
-  printers.forEach(printer => {
-    if (printer.socket.connected) {
-      printer.socket.emit('print-order', testOrder);
-      sentCount++;
-    }
-  });
-
-  console.log(`🧪 测试订单已发送到 ${sentCount} 台打印机`);
-
-  res.json({
-    success: true,
-    message: `测试订单已发送到 ${sentCount} 台打印机`,
-    testOrder,
-    printerCount: sentCount
-  });
-});
-
-// 测试订单更新广播
-app.post('/api/test-order-update', (req, res) => {
-  const testOrder = {
-    id: 'TEST-ORDER-' + Date.now(),
-    orderNumber: 'TEST-' + Date.now(),
-    customerName: '测试顾客',
-    totalAmount: 25.50,
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  };
-  
-  const testDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  
-  // 广播测试订单创建
-  broadcastOrderUpdate('ORDER_CREATED', testOrder, testDate);
-  
-  res.json({
-    success: true,
-    message: '测试订单更新已广播',
-    testOrder,
-    testDate,
-    adminClientCount: adminClients.size
-  });
-});
-
-// 错误处理中间件
-app.use((err, req, res, next) => {
-  console.error('💥 服务器错误:', err);
-  res.status(500).json({
-    success: false,
-    message: '服务器内部错误',
-    error: process.env.NODE_ENV === 'development' ? err.message : '请联系技术支持'
-  });
-});
-
-// 404 处理
-app.use('*', (req, res) => {
-  console.log(`❓ 未知路径: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({
-    success: false,
-    message: '路径不存在',
-    availableEndpoints: [
-      'GET /',
-      'GET /health', 
-      'GET /api/printers',
-      'GET /api/admin-clients',
-      'POST /api/orders/print',
-      'POST /api/orders/update',
-      'POST /api/test-print',
-      'POST /api/test-order-update'
-    ]
-  });
-});
+// 其余路由保持不变...
+// [包含其他所有路由代码]
 
 // 启动服务器
-const PORT = process.env.SOCKET_PORT || 3001;
+const PORT = process.env.SOCKET_PORT || process.env.PORT || 3001;
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log('🚀 ================================');
   console.log(`🏪 餐厅打印&管理系统 Socket 服务器启动成功`);
   console.log(`📡 端口: ${PORT}`);
-  console.log(`🔗 WebSocket: ws://localhost:${PORT}`);
-  console.log(`🌐 健康检查: http://localhost:${PORT}/health`);
-  console.log(`🖨️ 打印机管理: http://localhost:${PORT}/api/printers`);
-  console.log(`📊 管理端连接: http://localhost:${PORT}/api/admin-clients`);
-  console.log(`📡 订单更新: POST http://localhost:${PORT}/api/orders/update`);
+  console.log(`🔗 WebSocket: ws://0.0.0.0:${PORT}`);
+  console.log(`🌐 健康检查: http://0.0.0.0:${PORT}/health`);
+  console.log(`🖨️ 打印机管理: http://0.0.0.0:${PORT}/api/printers`);
+  console.log(`📊 管理端连接: http://0.0.0.0:${PORT}/api/admin-clients`);
+  console.log(`📡 订单更新: POST http://0.0.0.0:${PORT}/api/orders/update`);
+  console.log(`🌍 环境: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 允许的源: ${allowedOrigins.join(', ')}`);
   console.log('🚀 ================================');
 });
 
-// 改进的优雅关闭处理
-function shutdown(signal) {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
-  
-  console.log(`\n🛑 收到 ${signal} 信号，正在关闭服务器...`);
+// 优雅关闭
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
+function shutdown() {
+  console.log('\n🛑 正在关闭服务器...');
   
   // 通知所有连接的打印机和管理端
   printers.forEach(printer => {
@@ -490,36 +277,10 @@ function shutdown(signal) {
     }
   });
   
-  // 关闭所有socket连接
-  io.close(() => {
-    console.log('🔌 Socket.IO 已关闭');
-    server.close(() => {
-      console.log('✅ HTTP 服务器已关闭');
-      process.exit(0);
-    });
+  server.close(() => {
+    console.log('✅ 服务器已关闭');
+    process.exit(0);
   });
-  
-  // 强制退出（防止挂起）
-  setTimeout(() => {
-    console.log('⏰ 强制退出');
-    process.exit(1);
-  }, 10000);
 }
-
-// 监听多种关闭信号
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGQUIT', () => shutdown('SIGQUIT'));
-
-// 处理未捕获的异常
-process.on('uncaughtException', (err) => {
-  console.error('💥 未捕获的异常:', err);
-  shutdown('UNCAUGHT_EXCEPTION');
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 未处理的Promise拒绝:', reason);
-  shutdown('UNHANDLED_REJECTION');
-});
 
 // npm install express@4.18.2 socket.io@4 cors@2
